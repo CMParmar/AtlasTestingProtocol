@@ -1,0 +1,19 @@
+node_modules/
+test-results/
+playwright-report/
+blob-report/
+allure-results/
+allure-report/
+logs/
+build/qase-report/
+playwright/.cache/
+
+# Generated login session state -- keep the folder, ignore its contents.
+auth/*.json
+auth/.auth/*.json
+!auth/.gitkeep
+!auth/.auth/.gitkeep
+
+# Environment files hold credentials/tokens -- never committed.
+config/.env.*
+!config/.env.example

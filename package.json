@@ -1,0 +1,29 @@
+{
+  "name": "atlas-testing-protocol",
+  "version": "1.0.0",
+  "description": "Playwright (JavaScript) automation framework for Atlas Testing Protocol.",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:qa": "playwright test",
+    "test:uat": "cross-env TEST_ENV=uat playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report",
+    "allure:clean": "node -e \"const fs=require('fs');['allure-results','allure-report'].forEach(d=>fs.rmSync(d,{recursive:true,force:true}))\"",
+    "allure:generate": "allure generate allure-results --clean -o allure-report",
+    "allure:open": "allure open allure-report",
+    "allure:serve": "allure serve allure-results",
+    "qase:check": "node -e \"require('dotenv').config({path:'config/.env.'+(process.env.TEST_ENV||'qa')});const t=process.env.QASE_TESTOPS_API_TOKEN||'';console.log({QASE_MODE:process.env.QASE_MODE,QASE_TESTOPS_PROJECT:process.env.QASE_TESTOPS_PROJECT,token:t?('loaded, '+t.length+' chars, ends ...'+t.slice(-4)):'MISSING'})\"",
+    "test:qase": "cross-env QASE_MODE=testops playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.5",
+    "allure-commandline": "^2.46.1",
+    "allure-playwright": "^3.14.0",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.4.5",
+    "playwright-qase-reporter": "^2.7.0"
+  }
+}
