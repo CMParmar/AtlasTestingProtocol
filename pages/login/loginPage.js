@@ -10,10 +10,16 @@ class LoginPage extends BasePage {
     super(page);
 
     // ---- Locators -------------------------------------------------
-    this.emailTextBox = page.locator('#email');
-    this.passwordTextBox = page.locator('#password');
-    this.loginButton = page.locator('#login-submit');
-    this.validationSummaryText = page.locator('#validationSummary');
+    this.welcomeHeading = page.getByRole('heading', { name: 'Welcome to Xeo' });
+    this.emailTextBox = page.locator('input[type="email"][placeholder="name@example.com"]');
+    this.passwordTextBox = page.locator('input[placeholder="Password"]').first();
+    this.showPasswordButton = page.getByRole('button', { name: 'Show password' });
+    this.loginButton = page.getByRole('button', { name: 'Continue with email' });
+    this.needHelpLink = page.getByRole('link', { name: 'Need help Signing In?' });
+    this.resetPasswordHeading = page.getByRole('heading', { name: 'Reset your password' });
+    this.resetEmailTextBox = page.getByPlaceholder('Enter your email');
+    this.sendResetLinkButton = page.getByRole('button', { name: 'Send reset link' });
+    this.validationSummaryText = page.locator('.text-danger, [role="alert"]').filter({ hasText: /\S/ });
     // userMenuIcon is inherited from BasePage.
     // -----------------------------------------------------------------
   }
