@@ -3,11 +3,11 @@
 // from here instead of hardcoding routes, timeouts or enum values.
 
 const ROUTES = Object.freeze({
-  LOGIN: '/login', // TODO: replace with the real login route
+  LOGIN: '/Identity/Account/Login',
 });
 
 const URL_PATTERNS = Object.freeze({
-  LOGIN: /\/login/i, // TODO
+  LOGIN: /\/Identity\/Account\/Login/i,
 });
 
 const TIMEOUTS = Object.freeze({
@@ -20,7 +20,7 @@ const TIMEOUTS = Object.freeze({
 });
 
 const DEFAULT_ENV = 'qa';
-const DEFAULT_BASE_URL = 'https://your-app.example.com'; // TODO
+const DEFAULT_BASE_URL = 'https://atlassandbox.xeosoftware.com';
 
 module.exports = {
   ROUTES,
