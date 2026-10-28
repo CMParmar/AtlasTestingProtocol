@@ -1,66 +1,39 @@
-// @ts-check
-const path = require('path');
-const { defineConfig, devices } = require('@playwright/test');
-const { AUTH_FILE } = require('./fixtures/auth.fixture');
-const { TIMEOUTS, DEFAULT_ENV, DEFAULT_BASE_URL } = require('./utils/constants');
+// playwright.config.js
+import { defineConfig, devices } from '@playwright/test';
+import dotenv from 'dotenv';
 
-// TEST_ENV selects config/.env.<TEST_ENV> (default "qa").
-// Example: TEST_ENV=uat npx playwright test
-const TEST_ENV = process.env.TEST_ENV || DEFAULT_ENV;
-require('dotenv').config({ path: path.join(__dirname, 'config', `.env.${TEST_ENV}`) });
+// Single environment file: root .env
+dotenv.config();
 
-const BASE_URL = process.env.BASE_URL || DEFAULT_BASE_URL;
+const AUTH_FILE = '.auth/user.json'; // written by tests/auth.setup.js
 
-module.exports = defineConfig({
+export default defineConfig({
   testDir: './tests',
-  timeout: TIMEOUTS.TEST,
-  expect: { timeout: TIMEOUTS.EXPECT },
-  fullyParallel: false, // shared, stateful environment
+  timeout: 190_000,
+  expect: { timeout: 10_000 },
+  retries: 1,
+  // Lockout/throttle tests change server state for one user, so run serially
   workers: 1,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
-  reporter: [
-    ['html', { open: 'never' }],
-    ['list'],
-    ['allure-playwright', { resultsDir: 'allure-results', detail: true, suiteTitle: true }],
-    ['playwright-qase-reporter', {
-      mode: process.env.QASE_MODE || 'off', // 'testops' = send to Qase, 'off' = local only
-      fallback: 'report',
-      debug: false,
-      logging: { console: true, file: true },
-      testops: {
-        api: { token: process.env.QASE_TESTOPS_API_TOKEN },
-        project: process.env.QASE_TESTOPS_PROJECT, // Qase project CODE (case-sensitive)
-        uploadAttachments: true,
-        run: {
-          title: `Atlas Testing Protocol run - ${new Date().toLocaleString()}`,
-          complete: true,
-        },
-      },
-    }],
-  ],
-
+  reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: BASE_URL,
-    trace: 'retain-on-failure',
+    baseURL: process.env.BASE_URL || 'https://atlassandbox.xeosoftware.com',
+    trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
-    actionTimeout: TIMEOUTS.ACTION,
-    navigationTimeout: TIMEOUTS.NAVIGATION,
   },
-
   projects: [
+    // Logs in once and saves the session for the signed-in specs (createTask)
+    { name: 'setup', testMatch: /auth\.setup\.js/ },
+
+    // Signed-in specs: reuse the saved session
     {
-      name: 'setup',
-      testMatch: /auth\.setup\.js/,
-    },
-    {
-      name: 'chromium',
-      use: {
-        ...devices['Desktop Chrome'],
-        storageState: AUTH_FILE,
-      },
+      name: 'chromium-auth',
+      testMatch: /createTask\.spec\.js/,
+      use: { ...devices['Desktop Chrome'], storageState: AUTH_FILE },
       dependencies: ['setup'],
     },
+
+    // Sign In specs: must start signed out, so no storageState
+    { name: 'chromium', testMatch: /signIn\.spec\.js/, use: { ...devices['Desktop Chrome'] } },
+    { name: 'mobile', testMatch: /signIn\.spec\.js/, use: { ...devices['Pixel 7'] } },
   ],
 });
