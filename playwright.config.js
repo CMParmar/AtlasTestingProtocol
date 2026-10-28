@@ -14,7 +14,11 @@ export default defineConfig({
   retries: 1,
   // Lockout/throttle tests change server state for one user, so run serially
   workers: 1,
-  reporter: [['list'], ['html', { open: 'never' }]],
+  reporter: [
+    ['list'],
+    ['html', { open: 'never' }],
+    ['allure-playwright', { resultsDir: 'allure-results' }],
+  ],
   use: {
     baseURL: process.env.BASE_URL || 'https://atlassandbox.xeosoftware.com',
     trace: 'on-first-retry',
