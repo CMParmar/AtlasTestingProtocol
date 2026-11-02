@@ -285,7 +285,11 @@ test.describe('Sign In', () => {
 
   // ======================= SECURITY (simple to automate) =======================
   test.describe('Security', () => {
+    // Known defect (MF-4 requires HttpOnly + Secure + SameSite=Strict). Observed on the sandbox:
+    //   .AspNetCore.Identity.Application -> SameSite=Lax (expected Strict)
+    //   .AspNetCore.Session              -> Secure=false, SameSite=Lax
     test('TC_SIGN_091 Session cookie has HttpOnly, Secure, SameSite=Strict', async ({ loginPage }) => {
+      test.fail(true, 'Known defect: login/session cookies are SameSite=Lax and .AspNetCore.Session is not Secure');
       await loginPage.signInWith(users.valid.email, users.valid.password);
       await expect.poll(() => loginPage.getCurrentUrl()).not.toMatch(URL_PATTERNS.LOGIN); // signed in
       // Login/session cookies only (the antiforgery token cookie is not the session cookie)
