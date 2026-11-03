@@ -6,6 +6,8 @@ const { LoginPage } = require('../pages/login/loginPage');
 const { VerificationPage } = require('../pages/login/verificationPage');
 const { WelcomeModal } = require('../pages/components/welcomeModal');
 const { TaskPage } = require('../pages/task/taskPage');
+const { TaskEditPage } = require('../pages/task/taskEditPage');
+const { ManageTaskPage } = require('../pages/task/manageTaskPage');
 const { getSignInUsers, generateTotp } = require('../utils/testData');
 
 const test = base.test.extend({
@@ -34,6 +36,12 @@ const test = base.test.extend({
   // ---- task feature ----
   taskPage: async ({ page }, use) => {
     await use(new TaskPage(page));
+  },
+  taskEditPage: async ({ page }, use) => {
+    await use(new TaskEditPage(page));
+  },
+  manageTaskPage: async ({ page }, use) => {
+    await use(new ManageTaskPage(page));
   },
 
   // ---- add new feature page fixtures below ----

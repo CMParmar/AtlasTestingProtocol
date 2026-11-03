@@ -85,7 +85,7 @@ export default defineConfig({
     // Signed-in specs: reuse the saved session
     {
       name: 'chromium-auth',
-      testMatch: /createTask\.spec\.js/,
+      testMatch: /(createTask|viewEditTask|manageTask)\.spec\.js/,
       use: { ...devices['Desktop Chrome'], storageState: AUTH_FILE },
       dependencies: ['setup'],
     },
@@ -98,7 +98,7 @@ export default defineConfig({
     // Reuse the saved session; no retries: a retried "create" test would add a second record.
     {
       name: 'functional',
-      testIgnore: [/signIn\.spec\.js/, /createTask\.spec\.js/, /auth\.setup\.js/, /login\.spec\.js/],
+      testIgnore: [/signIn\.spec\.js/, /createTask\.spec\.js/, /viewEditTask\.spec\.js/, /manageTask\.spec\.js/, /auth\.setup\.js/, /login\.spec\.js/],
       retries: 0,
       dependencies: ['setup'],
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, storageState: AUTH_FILE },
