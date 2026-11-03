@@ -12,6 +12,7 @@ const { AccountEditPage } = require('../pages/account/accountEditPage');
 const { AdminResetPage } = require('../pages/adminReset/adminResetPage');
 const { ProjectPage } = require('../pages/project/projectPage');
 const { ProjectEditPage } = require('../pages/project/projectEditPage');
+const { RateCardPage } = require('../pages/ratecard/RateCardPage');
 
 /** Page objects injected into every test. */
 const test = base.test.extend({
@@ -36,6 +37,9 @@ const test = base.test.extend({
   // ---- project feature ----
   projectPage: async ({ page }, use) => use(new ProjectPage(page)),
   projectEditPage: async ({ page }, use) => use(new ProjectEditPage(page)),
+
+  // ---- rate card feature ----
+  rateCardPage: async ({ page }, use) => use(new RateCardPage(page)),
 });
 
 module.exports = { test, expect: base.expect };

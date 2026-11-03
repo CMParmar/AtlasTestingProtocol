@@ -33,6 +33,9 @@ const env = {
   projectAllowSuppressNotice: /^(1|true|yes)$/i.test(process.env.PROJECT_ALLOW_SUPPRESS_NOTICE || ''),
   // base32 TOTP secret of the admin (USER_EMAIL), only needed when re-authentication asks for a TOTP code
   adminTotpSecret: process.env.ADMIN_TOTP_SECRET || '',
+  // 63150 View & Edit Rate Card: rate card under test (/RateCard/Edit/{id}); archiving is permanent, so opt-in
+  rateCardId: process.env.RATE_CARD_ID || '1',
+  rateCardAllowArchive: /^(1|true|yes)$/i.test(process.env.RATE_CARD_ALLOW_ARCHIVE || ''),
 };
 
 if (!env.userEmail || !env.userPassword) {
