@@ -13,6 +13,7 @@ const { AdminResetPage } = require('../pages/adminReset/adminResetPage');
 const { ProjectPage } = require('../pages/project/projectPage');
 const { ProjectEditPage } = require('../pages/project/projectEditPage');
 const { RateCardPage } = require('../pages/ratecard/RateCardPage');
+const { BundlePage } = require('../pages/bundle/BundlePage');
 
 /** Page objects injected into every test. */
 const test = base.test.extend({
@@ -40,6 +41,9 @@ const test = base.test.extend({
 
   // ---- rate card feature ----
   rateCardPage: async ({ page }, use) => use(new RateCardPage(page)),
+
+  // ---- bundle feature ----
+  bundlePage: async ({ page }, use) => use(new BundlePage(page)),
 });
 
 module.exports = { test, expect: base.expect };

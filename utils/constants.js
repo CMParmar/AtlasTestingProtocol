@@ -5,6 +5,7 @@
 const ROUTES = Object.freeze({
   LOGIN: '/Identity/Account/Login',
   TASK: '/task',
+  SIGNAL_CENTER: '/SignalCenter',
 });
 
 const TASK = Object.freeze({
@@ -92,12 +93,38 @@ const TIMEOUTS = Object.freeze({
 });
 
 const DEFAULT_ENV = 'qa';
+// Signal Center (use case "View Signal Center"): filter tabs, sort, refresh, incremental load, list indicators.
+const SIGNAL_CENTER = Object.freeze({
+  FILTER: Object.freeze({ ALL: 'All', UNREAD: 'Unread', MENTIONED: 'Mentioned', STARRED: 'Starred' }),
+  SORT: Object.freeze({ ASCENDING: 'Ascending', DESCENDING: 'Descending' }),
+  // SET.COMM.SignalCenter.* defaults (the page also returns the live limits with every list response)
+  DEFAULT_DORMANT_AFTER_DAYS: Number(process.env.SIGNAL_DORMANT_AFTER_DAYS || 30),
+  DEFAULT_INITIAL_LOAD_LIMIT: 50,
+  DEFAULT_SCROLL_BATCH_SIZE: 25,
+  // messages (SC-[TBD] scenarios and the list error banner)
+  EMPTY_MESSAGE: 'No messages yet. Start a conversation to share updates or ask a question.',
+  FILTER_EMPTY_MESSAGE: 'No conversations match this filter.',
+  LOAD_ERROR_MESSAGE: 'An error occurred while loading conversations',
+  REFRESH_ERROR_MESSAGE: 'An error occurred while refreshing conversations',
+  // endpoints behind the list (used to wait for / mock responses)
+  API: Object.freeze({
+    LIST: '/SignalCenter/GetConversations',
+    REFRESH: '/SignalCenter/Refresh',
+    STAR: '/SignalCenter/ToggleStar',
+    SORT: '/SignalCenter/UpdateSortPreference',
+    FILTER: '/SignalCenter/UpdateFilterPreference',
+  }),
+  // generous upper bound for one list load (TC "performance under max load")
+  MAX_LOAD_MS: 15_000,
+});
+
 const DEFAULT_BASE_URL = 'https://atlassandbox.xeosoftware.com';
 
 module.exports = {
   ROUTES,
   TASK,
   MANAGE_TASK,
+  SIGNAL_CENTER,
   SIGN_IN,
   URL_PATTERNS,
   TIMEOUTS,

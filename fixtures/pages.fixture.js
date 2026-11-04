@@ -8,6 +8,7 @@ const { WelcomeModal } = require('../pages/components/welcomeModal');
 const { TaskPage } = require('../pages/task/taskPage');
 const { TaskEditPage } = require('../pages/task/taskEditPage');
 const { ManageTaskPage } = require('../pages/task/manageTaskPage');
+const { SignalCenterPage } = require('../pages/signalCenter/signalCenterPage');
 const { getSignInUsers, generateTotp } = require('../utils/testData');
 
 const test = base.test.extend({
@@ -42,6 +43,11 @@ const test = base.test.extend({
   },
   manageTaskPage: async ({ page }, use) => {
     await use(new ManageTaskPage(page));
+  },
+
+  // ---- signal center feature ----
+  signalCenterPage: async ({ page }, use) => {
+    await use(new SignalCenterPage(page));
   },
 
   // ---- add new feature page fixtures below ----

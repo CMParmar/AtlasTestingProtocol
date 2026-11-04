@@ -36,6 +36,7 @@ const moduleReporters = hasReporter('module-reporter.js') ? [
   ['Admin Reset', 'Users', 'Admin Resets a User Account (62294)', 'admin-reset', 'Atlas_AdminReset'],
   ['Project', 'Projects', 'Create Project (62422)', 'project', 'Atlas_Project', 'created'],
   ['Project Update', 'Projects', 'View & Edit Project (61967)', 'project-update', 'Atlas_ProjectUpdate'],
+  ['Bundle', 'Bundles', 'Create Bundle (63196)', 'bundle', 'Atlas_Bundle', 'created'],
 ].map(([module, entity, title, dir, filePrefix, records]) => ['./reporters/module-reporter.js', {
   module, entity, title, outputDir: `${modulesDir}/${dir}`, filePrefix, ...(records ? { records } : {}),
 }]) : [];
@@ -85,7 +86,7 @@ export default defineConfig({
     // Signed-in specs: reuse the saved session
     {
       name: 'chromium-auth',
-      testMatch: /(createTask|viewEditTask|manageTask)\.spec\.js/,
+      testMatch: /(createTask|viewEditTask|manageTask|signalCenter)\.spec\.js/,
       use: { ...devices['Desktop Chrome'], storageState: AUTH_FILE },
       dependencies: ['setup'],
     },
@@ -98,7 +99,7 @@ export default defineConfig({
     // Reuse the saved session; no retries: a retried "create" test would add a second record.
     {
       name: 'functional',
-      testIgnore: [/signIn\.spec\.js/, /createTask\.spec\.js/, /viewEditTask\.spec\.js/, /manageTask\.spec\.js/, /auth\.setup\.js/, /login\.spec\.js/],
+      testIgnore: [/signIn\.spec\.js/, /createTask\.spec\.js/, /viewEditTask\.spec\.js/, /manageTask\.spec\.js/, /signalCenter\.spec\.js/, /auth\.setup\.js/, /login\.spec\.js/],
       retries: 0,
       dependencies: ['setup'],
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, storageState: AUTH_FILE },
