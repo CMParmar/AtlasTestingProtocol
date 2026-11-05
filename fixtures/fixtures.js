@@ -17,6 +17,8 @@ const { BundlePage } = require('../pages/bundle/BundlePage');
 const { DocumentPage } = require('../pages/document/documentPage');
 const { ServicePage } = require('../pages/service/servicePage');
 const { ServiceEditPage } = require('../pages/service/serviceEditPage');
+const { PersonSearchPage } = require('../pages/search/personSearchPage');
+const { MessageSearchPage } = require('../pages/search/messageSearchPage');
 
 /** Page objects injected into every test. */
 const test = base.test.extend({
@@ -56,6 +58,10 @@ const test = base.test.extend({
 
   // ---- service feature (View & Edit Service - "Deliverable" in the UI) ----
   serviceEditPage: async ({ page }, use) => use(new ServiceEditPage(page)),
+
+  // ---- search feature (Person Search 62237, Conversation Message Search 62151) ----
+  personSearchPage: async ({ page }, use) => use(new PersonSearchPage(page)),
+  messageSearchPage: async ({ page }, use) => use(new MessageSearchPage(page)),
 });
 
 module.exports = { test, expect: base.expect };
