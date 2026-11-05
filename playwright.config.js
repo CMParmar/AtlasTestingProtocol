@@ -36,6 +36,8 @@ const moduleReporters = hasReporter('module-reporter.js') ? [
   ['Admin Reset', 'Users', 'Admin Resets a User Account (62294)', 'admin-reset', 'Atlas_AdminReset'],
   ['Project', 'Projects', 'Create Project (62422)', 'project', 'Atlas_Project', 'created'],
   ['Project Update', 'Projects', 'View & Edit Project (61967)', 'project-update', 'Atlas_ProjectUpdate'],
+  ['Message Search', 'Messages', 'Conversation Message Search (62151)', 'message-search', 'Atlas_MessageSearch'],
+  ['Person Search', 'Persons', 'Person Search Criteria (62237)', 'person-search', 'Atlas_PersonSearch'],
   ['Bundle', 'Bundles', 'Create Bundle (63196)', 'bundle', 'Atlas_Bundle', 'created'],
   ['Service', 'Deliverables', 'Create Service (62433)', 'service', 'Atlas_Service', 'created'],
   ['Service Update', 'Deliverables', 'View & Edit Service', 'service-update', 'Atlas_ServiceUpdate'],

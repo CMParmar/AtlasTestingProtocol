@@ -39,6 +39,24 @@ async function applyAllureLabels(tc, module) {
   await allure.description(`${tc.description}\n\nPre-condition: ${tc.condition}\n\nExpected: ${tc.expected || DEFAULT_EXPECTED}`);
 }
 
+/**
+ * Confirmed application defect (tc.defect = what is wrong): the test still checks the spec, but Playwright expects it
+ * to fail, so the run is not red for a bug that is already reported. The Excel report shows "Known Defect".
+ * When the app is fixed the test passes, which Playwright reports as a failure: then remove `defect` from the case.
+ * Call it from a beforeEach with the case of the running test (see knownDefectFor).
+ */
+function knownDefect(testInfo, tc) {
+  if (!tc || !tc.defect) return;
+  testInfo.annotations.push({ type: 'KnownDefect', description: tc.defect });
+  testInfo.fail(true, `Known defect: ${tc.defect}`);
+}
+
+/** Marks the running test as a known defect when its case (found by the TC id in the title) has `defect`. */
+function knownDefectFor(testInfo, cases) {
+  const id = testInfo.title.split(' - ')[0];
+  knownDefect(testInfo, Object.values(cases).find(tc => tc.id === id));
+}
+
 const fmtPhone = p => `+1 ${p.number} (${p.type})`;
 const fmtAddress = a =>
   `${a.type ? a.type + ': ' : ''}${a.recipientName}, ${a.address1}${a.address2 ? ', ' + a.address2 : ''}, ${a.city}, ${a.state} ${a.postalCode}`;
@@ -121,4 +139,4 @@ async function recordUrl(testInfo, url, label = 'Record') {
   await allure.link(url, label);
 }
 
-module.exports = { tcDetails, tcTitle, applyAllureLabels, recordTestValues, recordCreated, recordUpdated, recordUrl, toFields };
+module.exports = { tcDetails, tcTitle, applyAllureLabels, knownDefect, knownDefectFor, recordTestValues, recordCreated, recordUpdated, recordUrl, toFields };

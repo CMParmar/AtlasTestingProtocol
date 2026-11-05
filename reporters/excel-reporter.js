@@ -54,9 +54,14 @@ class ExcelReporter {
     const file = path.basename(test.location.file);
     const id = annotation(test, 'TestCaseNo') || (test.title.match(/\bTC[_-][A-Za-z0-9_-]+/) || [])[0] || test.title;
     const outcome = test.outcome();
-    const status = outcome === 'skipped' ? 'Skip' : outcome === 'unexpected' ? 'Fail' : 'Pass';
+    // a confirmed app defect (utils/testCase knownDefect) that failed as expected is not a Pass: report it as such
+    const defect = [...(result.annotations || []), ...test.annotations].find(a => a.type === 'KnownDefect');
+    const status = outcome === 'skipped' ? 'Skip' : outcome === 'unexpected' ? 'Fail'
+      : defect && result.status === 'failed' ? 'Known Defect' : 'Pass';
     const skip = test.annotations.find(a => a.type === 'skip');
-    const error = stripAnsi(result.error && result.error.message).split('\n').map(s => s.trim()).filter(Boolean).slice(0, 2).join(' ').slice(0, 400);
+    let error = stripAnsi(result.error && result.error.message).split('\n').map(s => s.trim()).filter(Boolean).slice(0, 2).join(' ').slice(0, 400);
+    if (status === 'Known Defect') error = `Known defect: ${defect.description}`;
+    if (status === 'Fail' && defect && result.status === 'passed') error = `Known defect no longer reproduces - the app looks fixed; remove "defect" from ${annotation(test, 'TestCaseNo') || 'the case'}`;
     const created = test.annotations.filter(a => a.type === 'CreatedRecord').map(a => { try { return JSON.parse(a.description); } catch { return null; } }).filter(Boolean);
     const module = annotation(test, 'Module') || (/signIn/i.test(file) ? 'Login' : /createTask/i.test(file) ? 'Task' : test.parent.title || 'Other');
     this.cases.set(test.id, {
@@ -71,7 +76,7 @@ class ExcelReporter {
       values: annotation(test, 'TestValues'),
       url: annotation(test, 'RecordURL') || (created[0] && created[0].url) || '',
       status,
-      actual: status === 'Fail' ? error : status === 'Skip' ? (skip && skip.description) || 'Skipped' : '',
+      actual: status === 'Fail' || status === 'Known Defect' ? error : status === 'Skip' ? (skip && skip.description) || 'Skipped' : '',
       durationMs: test.results.reduce((s, r) => s + r.duration, 0),
       runId: this.runId,
       created,
@@ -97,10 +102,10 @@ class ExcelReporter {
       for (const c of run) store.latest[c.id] = { ...c, created: undefined };
       store.persons.push(...persons);
       store.companies.push(...companies);
-      const passed = count('Pass'), failed = count('Fail'), skipped = count('Skip');
+      const passed = count('Pass'), failed = count('Fail'), skipped = count('Skip'), knownDefects = count('Known Defect');
       const runInfo = {
         runId: this.runId, start: this.start.toISOString(), durationMs: result.duration,
-        status: failed ? 'failed' : 'passed', total: run.length, passed, failed, skipped,
+        status: failed ? 'failed' : 'passed', total: run.length, passed, failed, skipped, knownDefects,
         passRate: passed + failed ? passed / (passed + failed) : 0,
         testTimeMs: run.reduce((s, c) => s + c.durationMs, 0),
         personsCreated: persons.length, companiesCreated: companies.length,
@@ -157,7 +162,7 @@ class ExcelReporter {
       ['Executed On', dateTime(this.start)],
       ['Total Run Duration', `${mmss(runInfo.durationMs)} (mm:ss)`],
       ['Overall Run Status', runInfo.status.toUpperCase()],
-      ['Tests Executed (this run)', `${runInfo.total}  (Passed ${runInfo.passed}, Failed ${runInfo.failed}, Skipped ${runInfo.skipped})`],
+      ['Tests Executed (this run)', `${runInfo.total}  (Passed ${runInfo.passed}, Failed ${runInfo.failed}, Skipped ${runInfo.skipped}, Known Defects ${runInfo.knownDefects || 0})`],
       ['Persons Created (this run)', runInfo.personsCreated],
       ['Companies Created (this run)', runInfo.companiesCreated],
       ['Persons Created (all runs)', totalPersons],
