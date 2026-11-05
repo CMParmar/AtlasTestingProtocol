@@ -12,13 +12,12 @@ const { AccountEditPage } = require('../pages/account/accountEditPage');
 const { AdminResetPage } = require('../pages/adminReset/adminResetPage');
 const { ProjectPage } = require('../pages/project/projectPage');
 const { ProjectEditPage } = require('../pages/project/projectEditPage');
-<<<<<<< HEAD
 const { MessageSearchPage } = require('../pages/search/messageSearchPage');
 const { PersonSearchPage } = require('../pages/search/personSearchPage');
-=======
+const { SearchResultsConfigPage } = require('../pages/search/searchResultsConfigPage');
+const { BaseSearchPage } = require('../pages/search/baseSearchPage');
 const { RateCardPage } = require('../pages/ratecard/RateCardPage');
 const { BundlePage } = require('../pages/bundle/BundlePage');
->>>>>>> dc4ca46d5f1382c3c480b6ecdc03d315e44da1ac
 
 /** Page objects injected into every test. */
 const test = base.test.extend({
@@ -44,17 +43,17 @@ const test = base.test.extend({
   projectPage: async ({ page }, use) => use(new ProjectPage(page)),
   projectEditPage: async ({ page }, use) => use(new ProjectEditPage(page)),
 
-<<<<<<< HEAD
   // ---- search feature ----
   messageSearchPage: async ({ page }, use) => use(new MessageSearchPage(page)),
   personSearchPage: async ({ page }, use) => use(new PersonSearchPage(page)),
-=======
+  searchResultsConfigPage: async ({ page }, use) => use(new SearchResultsConfigPage(page)),
+  baseSearchPage: async ({ page }, use) => use(new BaseSearchPage(page)),
+
   // ---- rate card feature ----
   rateCardPage: async ({ page }, use) => use(new RateCardPage(page)),
 
   // ---- bundle feature ----
   bundlePage: async ({ page }, use) => use(new BundlePage(page)),
->>>>>>> dc4ca46d5f1382c3c480b6ecdc03d315e44da1ac
 });
 
 module.exports = { test, expect: base.expect };
