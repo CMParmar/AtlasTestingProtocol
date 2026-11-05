@@ -40,16 +40,16 @@ class BasePage {
 
   // ---- Added for the Person / Company / Account / Project / Admin Reset pages ----
 
-  async open(path) {
-    await this.page.goto(path, { waitUntil: 'domcontentloaded' });
+  async open(path, options = {}) {
+    await this.page.goto(path, { waitUntil: 'domcontentloaded', ...options });
   }
 
-  /** Opens a record page. A leftover "leave page?" browser prompt from a dirty form is accepted. */
-  async openRecord(path) {
+  /** Opens a record page. A leftover "leave page?" browser prompt from a dirty form is accepted. `options` go to page.goto (e.g. { timeout }). */
+  async openRecord(path, options = {}) {
     const acceptLeave = d => (d.type() === 'beforeunload' ? d.accept() : d.dismiss());
     this.page.on('dialog', acceptLeave);
     try {
-      await this.open(path);
+      await this.open(path, options);
     } finally {
       this.page.off('dialog', acceptLeave);
     }

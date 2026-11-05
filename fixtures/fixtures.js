@@ -14,6 +14,9 @@ const { ProjectPage } = require('../pages/project/projectPage');
 const { ProjectEditPage } = require('../pages/project/projectEditPage');
 const { RateCardPage } = require('../pages/ratecard/RateCardPage');
 const { BundlePage } = require('../pages/bundle/BundlePage');
+const { DocumentPage } = require('../pages/document/documentPage');
+const { ServicePage } = require('../pages/service/servicePage');
+const { ServiceEditPage } = require('../pages/service/serviceEditPage');
 
 /** Page objects injected into every test. */
 const test = base.test.extend({
@@ -44,6 +47,15 @@ const test = base.test.extend({
 
   // ---- bundle feature ----
   bundlePage: async ({ page }, use) => use(new BundlePage(page)),
+
+  // ---- document feature (Add Document, 62431) ----
+  documentPage: async ({ page }, use) => use(new DocumentPage(page)),
+
+  // ---- service feature (Create Service, 62433 - "Deliverable" in the UI) ----
+  servicePage: async ({ page }, use) => use(new ServicePage(page)),
+
+  // ---- service feature (View & Edit Service - "Deliverable" in the UI) ----
+  serviceEditPage: async ({ page }, use) => use(new ServiceEditPage(page)),
 });
 
 module.exports = { test, expect: base.expect };
