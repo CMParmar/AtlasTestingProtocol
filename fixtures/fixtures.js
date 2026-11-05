@@ -12,6 +12,8 @@ const { AccountEditPage } = require('../pages/account/accountEditPage');
 const { AdminResetPage } = require('../pages/adminReset/adminResetPage');
 const { ProjectPage } = require('../pages/project/projectPage');
 const { ProjectEditPage } = require('../pages/project/projectEditPage');
+const { MessageSearchPage } = require('../pages/search/messageSearchPage');
+const { PersonSearchPage } = require('../pages/search/personSearchPage');
 
 /** Page objects injected into every test. */
 const test = base.test.extend({
@@ -36,6 +38,10 @@ const test = base.test.extend({
   // ---- project feature ----
   projectPage: async ({ page }, use) => use(new ProjectPage(page)),
   projectEditPage: async ({ page }, use) => use(new ProjectEditPage(page)),
+
+  // ---- search feature ----
+  messageSearchPage: async ({ page }, use) => use(new MessageSearchPage(page)),
+  personSearchPage: async ({ page }, use) => use(new PersonSearchPage(page)),
 });
 
 module.exports = { test, expect: base.expect };
