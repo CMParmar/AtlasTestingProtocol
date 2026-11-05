@@ -5,6 +5,7 @@
 const ROUTES = Object.freeze({
   LOGIN: '/Identity/Account/Login',
   TASK: '/task',
+  SIGNAL_CENTER: '/SignalCenter',
 });
 
 const TASK = Object.freeze({
@@ -20,6 +21,38 @@ const TASK = Object.freeze({
   REMINDER_FUTURE_MESSAGE: 'Select a reminder date and time in the future.',
   SUCCESS_MESSAGE: 'Your new record has been added.',
   PAST_DATE: '2020-01-01',
+
+  // ---- View & Edit Task ----
+  // Tasks are seeded on this Project's "Tasks" tab (a Task with a related record is listed there and on /task).
+  PROJECT_ID: process.env.TASK_PROJECT_ID || '819',
+  SAVE_MESSAGE: 'Your changes have been saved.',
+  NOT_DONE_STATUS_LABEL: 'Not Done',
+  STATUS_LABELS: ['Not Done', 'Done'],
+});
+
+// Manage Tasks (/task "Assignments" page): scope toggle, record-type tabs, advanced filters, list sections.
+const MANAGE_TASK = Object.freeze({
+  SCOPE: Object.freeze({ MY: 'My', TEAM: 'Team' }),
+  TAB: Object.freeze({ ALL: 'All', TASKS: 'Tasks', WORK_ITEMS: 'WorkItems', FAVORITES: 'Favorites' }),
+  // Due Date filter pick list (BR-6; the design's list is authoritative)
+  DUE_DATE_OPTIONS: ['All', 'Today', 'Tomorrow', 'This week', 'Next 7 days', 'Overdue', 'No Due Date'],
+  DUE: Object.freeze({ TODAY: 'Today', OVERDUE: 'Overdue', NONE: 'No Due Date' }),
+  TASK_STATUS_OPTIONS: ['All', 'Not Done', 'Done'],
+  // Status Indicator filter (63255): the six display indicators
+  INDICATOR_OPTIONS: ['Completed', 'Not ready to start', 'Ready to start', 'Ready to complete', 'Canceled', 'Temp'],
+  INDICATOR: Object.freeze({
+    COMPLETED: 'Completed',
+    NOT_READY: 'Not ready to start',
+    READY_TO_START: 'Ready to start',
+    READY_TO_COMPLETE: 'Ready to complete',
+    CANCELED: 'Canceled',
+  }),
+  GROUP: Object.freeze({ CANCELED: /^Canceled/i, COMPLETED_TASKS: /^Completed Tasks/i, NOT_DONE: /^Not Done/i, TASKS: /^Tasks/i }),
+  NO_VALUE: '—',
+  STAFF_ROLE: 'Developer',
+  UNKNOWN_KEYWORD: 'zzzz-no-such-assignment-zzzz',
+  DONE_STATUS_LABEL: 'Done',
+  FILTER_SEARCH_TEXT: 'Vau',
 });
 
 // Sign In (use case 62290). Wording comes from the requirement document.
@@ -60,11 +93,38 @@ const TIMEOUTS = Object.freeze({
 });
 
 const DEFAULT_ENV = 'qa';
+// Signal Center (use case "View Signal Center"): filter tabs, sort, refresh, incremental load, list indicators.
+const SIGNAL_CENTER = Object.freeze({
+  FILTER: Object.freeze({ ALL: 'All', UNREAD: 'Unread', MENTIONED: 'Mentioned', STARRED: 'Starred' }),
+  SORT: Object.freeze({ ASCENDING: 'Ascending', DESCENDING: 'Descending' }),
+  // SET.COMM.SignalCenter.* defaults (the page also returns the live limits with every list response)
+  DEFAULT_DORMANT_AFTER_DAYS: Number(process.env.SIGNAL_DORMANT_AFTER_DAYS || 30),
+  DEFAULT_INITIAL_LOAD_LIMIT: 50,
+  DEFAULT_SCROLL_BATCH_SIZE: 25,
+  // messages (SC-[TBD] scenarios and the list error banner)
+  EMPTY_MESSAGE: 'No messages yet. Start a conversation to share updates or ask a question.',
+  FILTER_EMPTY_MESSAGE: 'No conversations match this filter.',
+  LOAD_ERROR_MESSAGE: 'An error occurred while loading conversations',
+  REFRESH_ERROR_MESSAGE: 'An error occurred while refreshing conversations',
+  // endpoints behind the list (used to wait for / mock responses)
+  API: Object.freeze({
+    LIST: '/SignalCenter/GetConversations',
+    REFRESH: '/SignalCenter/Refresh',
+    STAR: '/SignalCenter/ToggleStar',
+    SORT: '/SignalCenter/UpdateSortPreference',
+    FILTER: '/SignalCenter/UpdateFilterPreference',
+  }),
+  // generous upper bound for one list load (TC "performance under max load")
+  MAX_LOAD_MS: 15_000,
+});
+
 const DEFAULT_BASE_URL = 'https://atlassandbox.xeosoftware.com';
 
 module.exports = {
   ROUTES,
   TASK,
+  MANAGE_TASK,
+  SIGNAL_CENTER,
   SIGN_IN,
   URL_PATTERNS,
   TIMEOUTS,
