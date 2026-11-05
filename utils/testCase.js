@@ -74,6 +74,8 @@ const LABELS = {
   templateVersion: 'Template Version', currentPhase: 'Current Phase', projectCode: 'Project Code', description: 'Description',
   estimatedHours: 'Estimated Hours', scheduledStart: 'Scheduled Start Date', dueDate: 'Due Date',
   actualStart: 'Actual Start Date', actualCompletion: 'Actual Completion Date',
+  serviceItem: 'Deliverable Type', serviceName: 'Deliverable Name', serviceStatus: 'Deliverable Status', serviceStage: 'Deliverable Stage',
+  project: 'Project', orderedDate: 'Date Ordered', action: 'Action',
   question: 'Verification Question', reauth: 'Re-authentication', useParentBilling: 'Use Owner Billing Address', ownerAddress: 'Owner Billing Address',
 };
 

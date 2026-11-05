@@ -6,6 +6,7 @@ const ROUTES = Object.freeze({
   LOGIN: '/Identity/Account/Login',
   TASK: '/task',
   SIGNAL_CENTER: '/SignalCenter',
+  SERVICE_CREATE: '/Service/Create',
 });
 
 const TASK = Object.freeze({
@@ -56,6 +57,31 @@ const MANAGE_TASK = Object.freeze({
 });
 
 // Sign In (use case 62290). Wording comes from the requirement document.
+const DOCUMENT = Object.freeze({
+  // Parent entity the Add Document suite works on: /Project/Edit/{id} (Projects have DocumentsEnabled in the sandbox)
+  PARENT_PROJECT_ID: process.env.DOCUMENT_PROJECT_ID || process.env.TASK_PROJECT_ID || '819',
+  STORAGE: Object.freeze({ FILE: 'file', CLOUD: 'cloud' }),
+  STORAGE_ID: Object.freeze({ file: 2, cloud: 1 }),
+  CATEGORIES: ['Specification', 'Prototype', 'Test', 'Issue Document'],
+  INVALID_URL_MESSAGE: 'Please enter a valid URL.',
+  UPLOAD_FAILED_MESSAGE: 'The file could not be uploaded. Please try again.',
+  NO_PERMISSION_ADD_MESSAGE: 'You do not have permission to add documents to this record.',
+  NO_PERMISSION_VIEWABLE_MESSAGE: 'You do not have permission to mark a document as customer viewable.',
+  NAME_REQUIRED_MESSAGE: 'Document name is required',
+  STORAGE_REQUIRED_MESSAGE: 'Please select a storage type (Upload file or Paste link)',
+  URL_REQUIRED_MESSAGE: 'Document URL is required.',
+  ADDED_MESSAGE: 'Your new record has been added.',
+  GOOGLE_DOC_URL: 'https://docs.google.com/document/d/atlas-test-doc/edit',
+  GOOGLE_DOC_DEFAULT_NAME: 'Google Doc',
+  ONEDRIVE_URL: 'https://onedrive.live.com/view.aspx?resid=atlas-test',
+  ONEDRIVE_DEFAULT_NAME: 'OneDrive Document',
+  DROPBOX_URL: 'https://www.dropbox.com/s/atlas-test/file.pdf',
+  DROPBOX_DEFAULT_NAME: 'Dropbox File',
+  EXTERNAL_URL: 'https://example.com/shared/atlas-test',
+  EXTERNAL_DEFAULT_NAME: 'External Document',
+  BAD_URL: 'not a url',
+});
+
 const SIGN_IN = Object.freeze({
   EMAIL_REQUIRED_MESSAGE: 'The Email field is required.',
   PASSWORD_REQUIRED_MESSAGE: 'The Password field is required.',
@@ -125,6 +151,7 @@ module.exports = {
   TASK,
   MANAGE_TASK,
   SIGNAL_CENTER,
+  DOCUMENT,
   SIGN_IN,
   URL_PATTERNS,
   TIMEOUTS,

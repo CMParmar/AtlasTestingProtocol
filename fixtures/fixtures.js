@@ -18,6 +18,9 @@ const { SearchResultsConfigPage } = require('../pages/search/searchResultsConfig
 const { BaseSearchPage } = require('../pages/search/baseSearchPage');
 const { RateCardPage } = require('../pages/ratecard/RateCardPage');
 const { BundlePage } = require('../pages/bundle/BundlePage');
+const { DocumentPage } = require('../pages/document/documentPage');
+const { ServicePage } = require('../pages/service/servicePage');
+const { ServiceEditPage } = require('../pages/service/serviceEditPage');
 
 /** Page objects injected into every test. */
 const test = base.test.extend({
@@ -43,7 +46,7 @@ const test = base.test.extend({
   projectPage: async ({ page }, use) => use(new ProjectPage(page)),
   projectEditPage: async ({ page }, use) => use(new ProjectEditPage(page)),
 
-  // ---- search feature ----
+  // ---- search feature (Message Search 62151, Person Search 62237, Configure Search Results 62281, Base Search 62383) ----
   messageSearchPage: async ({ page }, use) => use(new MessageSearchPage(page)),
   personSearchPage: async ({ page }, use) => use(new PersonSearchPage(page)),
   searchResultsConfigPage: async ({ page }, use) => use(new SearchResultsConfigPage(page)),
@@ -54,6 +57,15 @@ const test = base.test.extend({
 
   // ---- bundle feature ----
   bundlePage: async ({ page }, use) => use(new BundlePage(page)),
+
+  // ---- document feature (Add Document, 62431) ----
+  documentPage: async ({ page }, use) => use(new DocumentPage(page)),
+
+  // ---- service feature (Create Service, 62433 - "Deliverable" in the UI) ----
+  servicePage: async ({ page }, use) => use(new ServicePage(page)),
+
+  // ---- service feature (View & Edit Service - "Deliverable" in the UI) ----
+  serviceEditPage: async ({ page }, use) => use(new ServiceEditPage(page)),
 });
 
 module.exports = { test, expect: base.expect };
