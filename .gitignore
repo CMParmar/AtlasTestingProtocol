@@ -3,3 +3,8 @@ node_modules/
 .auth/
 playwright-report/
 test-results/
+# generated reports (keep the folder, ignore the output)
+reports/*
+!reports/.gitkeep
+allure-results/
+allure-report/

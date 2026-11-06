@@ -7,6 +7,7 @@
 //   - No expect()/assertions -- methods perform actions or return values that
 //     specs assert on.
 
+const { expect } = require('@playwright/test');
 const { waitForVisible, waitForHidden, isVisibleWithin } = require('../utils/waitHelpers');
 const { TIMEOUTS } = require('../utils/constants');
 
@@ -18,8 +19,126 @@ class BasePage {
     // ---- Common locators (shared across the whole app) ---------------
     // TODO: signed-in indicator, e.g. a user-menu icon.
     this.userMenuIcon = page.locator('#userMenu');
+
+    // ---- Added for the Person / Company / Account / Project / Admin Reset pages ----
+    this.userMenu = page.locator('#userMenu');
+    this.quickSearchInput = page.locator('#quickSearchInput');
+    this.quickSearchButton = page.locator('#quickSearchButton');
+    this.sandboxBanner = page.getByText('This is the sandbox.');
+    this.recordAddedMessage = page.getByText('Your new record has been added.');
+    // slide-out drawers (phone / address): the panel carries "is-open" while shown.
+    // (a closed drawer only slides off-screen, so visibility alone can't be trusted)
+    this.openDrawer = page.locator('.is-open').filter({ has: page.locator('.right-drawer__close') });
+    // record (edit) pages: CORE-2 "Record saved successfully." - must not match the sandbox banner ("...will not be saved long-term")
+    this.savedMessage = page.getByText(/record saved successfully|(has|have) been (saved|updated)|(saved|updated) successfully/i)
+      .filter({ visible: true }).first();
+    this.dirtyModal = page.locator('#dirtyRecordWarningModal');
+    // any sidebar link that is not marked jqBypassDirtyCheck triggers the dirty-record check
+    this.leaveLink = page.locator('a.side-link[href="/RecentlyViewed"]');
     // -----------------------------------------------------------------
   }
+
+  // ---- Added for the Person / Company / Account / Project / Admin Reset pages ----
+
+  async open(path, options = {}) {
+    await this.page.goto(path, { waitUntil: 'domcontentloaded', ...options });
+  }
+
+  /** Opens a record page. A leftover "leave page?" browser prompt from a dirty form is accepted. `options` go to page.goto (e.g. { timeout }). */
+  async openRecord(path, options = {}) {
+    const acceptLeave = d => (d.type() === 'beforeunload' ? d.accept() : d.dismiss());
+    this.page.on('dialog', acceptLeave);
+    try {
+      await this.open(path, options);
+    } finally {
+      this.page.off('dialog', acceptLeave);
+    }
+  }
+
+  /** Record tab (Details, People, Accounts, Documents, Tasks, Audit). */
+  tab(name) {
+    return this.page.locator('main').getByText(name, { exact: true }).filter({ visible: true }).first();
+  }
+
+  async openTab(name) {
+    await this.tab(name).click();
+  }
+
+  /** Clicks a record page's Save button and waits for the post-back and the confirmation message. */
+  async saveRecord(button, entity) {
+    await Promise.all([
+      this.page.waitForResponse(r => r.request().method() === 'POST' && new RegExp(entity, 'i').test(r.url()), { timeout: 30_000 }),
+      button.click(),
+    ]);
+    await this.page.waitForLoadState('domcontentloaded');
+    await expect(this.savedMessage, 'Expected a "Record saved successfully." confirmation after Save').toBeVisible();
+  }
+
+  /**
+   * Clicks a sidebar link while the form has unsaved changes and answers the warning.
+   * Handles both the app's "Unsaved Changes" modal and a native browser prompt.
+   * @param {'cancel'|'continue'} choice
+   * @returns {Promise<string>} the warning text that was shown
+   */
+  async leaveWithUnsavedChanges(choice) {
+    let dialogText = '';
+    const onDialog = async d => {
+      dialogText = d.message() || `(${d.type()} prompt)`;
+      await (choice === 'continue' ? d.accept() : d.dismiss());
+    };
+    this.page.on('dialog', onDialog);
+    try {
+      await this.leaveLink.click();
+      await expect.poll(async () => dialogText || ((await this.dirtyModal.isVisible()) ? 'modal' : ''),
+        { message: 'DEFECT: no unsaved-changes warning was shown when leaving the page', timeout: 10_000 }).not.toBe('');
+      if (dialogText) return dialogText;
+      const text = (await this.dirtyModal.locator('.modal-body').innerText()).trim();
+      await this.dirtyModal.locator(`.modal-footer [data-action="${choice}"]`).click();
+      if (choice === 'cancel') await expect(this.dirtyModal).toBeHidden();
+      return text;
+    } finally {
+      this.page.off('dialog', onDialog);
+    }
+  }
+
+  async expectLoggedIn() {
+    await expect(this.userMenu).toBeVisible();
+    await expect(this.page).not.toHaveURL(/\/Identity\/Account\/Login/);
+  }
+
+  /** Drawers normally slide closed after "Continue"; close one manually only if it stays open. */
+  async closeDrawerIfOpen() {
+    try {
+      await expect(this.openDrawer).toHaveCount(0, { timeout: 5_000 });
+    } catch {
+      await this.openDrawer.locator('.right-drawer__close').first().click();
+      await expect(this.openDrawer).toHaveCount(0);
+    }
+  }
+
+  /** A visible validation message with the given text (jQuery unobtrusive validation). */
+  validationMessage(text) {
+    return this.page.getByText(text).filter({ visible: true }).first();
+  }
+
+  /** Any visible validation message on the page (letters required, so "*" required-markers don't count). */
+  anyValidationError() {
+    return this.page.locator('.field-validation-error, .text-danger, .invalid-feedback')
+      .filter({ visible: true, hasText: /[A-Za-z]{3}/ }).first();
+  }
+
+  /** Matches a phone number however the app formats it: "+1 2025550143", "(202) 555-0143", ... */
+  phoneText(number) {
+    return this.page.locator('main').getByText(new RegExp(number.replace(/\D/g, '').split('').join('\\D*'))).first();
+  }
+
+  /** Numeric record id at the end of the current URL, e.g. /Person/Edit/123 -> "123". */
+  recordIdFromUrl() {
+    const m = this.page.url().match(/\/(\d+)(?:[/?#].*)?$/);
+    return m ? m[1] : '';
+  }
+
+  // ---- (end of added section) ----
 
   // ---- Navigation --------------------------------------------------
 
