@@ -370,9 +370,8 @@ test.describe('Service - View & Edit Service', () => {
     await seedService(sp, testInfo, c.completionSet);
     await expect(sp.actualCompletion, 'Empty while open').toHaveValue('');
     await sp.complete(STATUS.completed);
-    const date = await sp.actualCompletion.inputValue();
-    await recordTestValues(testInfo, { actualCompletion: date });
-    expect(date, 'Actual Completion Date populated').toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    await expect(sp.actualCompletion, 'Actual Completion Date populated').toHaveValue(/^\d{4}-\d{2}-\d{2}$/, { timeout: 20_000 });
+    await recordTestValues(testInfo, { actualCompletion: await sp.actualCompletion.inputValue() });
     await expect(sp.actualCompletion, 'Read-only').toBeDisabled();
   });
 
