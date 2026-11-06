@@ -38,6 +38,8 @@ const moduleReporters = hasReporter('module-reporter.js') ? [
   ['Project Update', 'Projects', 'View & Edit Project (61967)', 'project-update', 'Atlas_ProjectUpdate'],
   ['Message Search', 'Messages', 'Conversation Message Search (62151)', 'message-search', 'Atlas_MessageSearch'],
   ['Person Search', 'Persons', 'Person Search Criteria (62237)', 'person-search', 'Atlas_PersonSearch'],
+  ['Search Results Config', 'Search Pages', 'Configure Search Results (62281)', 'search-results-config', 'Atlas_SearchResultsConfig'],
+  ['Base Search', 'Search Pages', 'Base Search Entity Records (62383)', 'base-search', 'Atlas_BaseSearch'],
   ['Bundle', 'Bundles', 'Create Bundle (63196)', 'bundle', 'Atlas_Bundle', 'created'],
   ['Service', 'Deliverables', 'Create Service (62433)', 'service', 'Atlas_Service', 'created'],
   ['Service Update', 'Deliverables', 'View & Edit Service', 'service-update', 'Atlas_ServiceUpdate'],

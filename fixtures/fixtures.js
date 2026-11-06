@@ -12,13 +12,15 @@ const { AccountEditPage } = require('../pages/account/accountEditPage');
 const { AdminResetPage } = require('../pages/adminReset/adminResetPage');
 const { ProjectPage } = require('../pages/project/projectPage');
 const { ProjectEditPage } = require('../pages/project/projectEditPage');
+const { MessageSearchPage } = require('../pages/search/messageSearchPage');
+const { PersonSearchPage } = require('../pages/search/personSearchPage');
+const { SearchResultsConfigPage } = require('../pages/search/searchResultsConfigPage');
+const { BaseSearchPage } = require('../pages/search/baseSearchPage');
 const { RateCardPage } = require('../pages/ratecard/RateCardPage');
 const { BundlePage } = require('../pages/bundle/BundlePage');
 const { DocumentPage } = require('../pages/document/documentPage');
 const { ServicePage } = require('../pages/service/servicePage');
 const { ServiceEditPage } = require('../pages/service/serviceEditPage');
-const { PersonSearchPage } = require('../pages/search/personSearchPage');
-const { MessageSearchPage } = require('../pages/search/messageSearchPage');
 
 /** Page objects injected into every test. */
 const test = base.test.extend({
@@ -44,6 +46,12 @@ const test = base.test.extend({
   projectPage: async ({ page }, use) => use(new ProjectPage(page)),
   projectEditPage: async ({ page }, use) => use(new ProjectEditPage(page)),
 
+  // ---- search feature (Message Search 62151, Person Search 62237, Configure Search Results 62281, Base Search 62383) ----
+  messageSearchPage: async ({ page }, use) => use(new MessageSearchPage(page)),
+  personSearchPage: async ({ page }, use) => use(new PersonSearchPage(page)),
+  searchResultsConfigPage: async ({ page }, use) => use(new SearchResultsConfigPage(page)),
+  baseSearchPage: async ({ page }, use) => use(new BaseSearchPage(page)),
+
   // ---- rate card feature ----
   rateCardPage: async ({ page }, use) => use(new RateCardPage(page)),
 
@@ -58,10 +66,6 @@ const test = base.test.extend({
 
   // ---- service feature (View & Edit Service - "Deliverable" in the UI) ----
   serviceEditPage: async ({ page }, use) => use(new ServiceEditPage(page)),
-
-  // ---- search feature (Person Search 62237, Conversation Message Search 62151) ----
-  personSearchPage: async ({ page }, use) => use(new PersonSearchPage(page)),
-  messageSearchPage: async ({ page }, use) => use(new MessageSearchPage(page)),
 });
 
 module.exports = { test, expect: base.expect };
