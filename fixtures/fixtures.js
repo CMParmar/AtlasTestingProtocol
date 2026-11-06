@@ -16,6 +16,7 @@ const { MessageSearchPage } = require('../pages/search/messageSearchPage');
 const { PersonSearchPage } = require('../pages/search/personSearchPage');
 const { SearchResultsConfigPage } = require('../pages/search/searchResultsConfigPage');
 const { BaseSearchPage } = require('../pages/search/baseSearchPage');
+const { AdvancedSearchPage } = require('../pages/search/advancedSearchPage');
 const { RateCardPage } = require('../pages/ratecard/RateCardPage');
 const { BundlePage } = require('../pages/bundle/BundlePage');
 const { DocumentPage } = require('../pages/document/documentPage');
@@ -51,6 +52,8 @@ const test = base.test.extend({
   personSearchPage: async ({ page }, use) => use(new PersonSearchPage(page)),
   searchResultsConfigPage: async ({ page }, use) => use(new SearchResultsConfigPage(page)),
   baseSearchPage: async ({ page }, use) => use(new BaseSearchPage(page)),
+  // Advanced Search Criteria Capture (62200)
+  advancedSearchPage: async ({ page }, use) => use(new AdvancedSearchPage(page)),
 
   // ---- rate card feature ----
   rateCardPage: async ({ page }, use) => use(new RateCardPage(page)),
