@@ -43,6 +43,7 @@ const moduleReporters = hasReporter('module-reporter.js') ? [
   ['Bundle', 'Bundles', 'Create Bundle (63196)', 'bundle', 'Atlas_Bundle', 'created'],
   ['Service', 'Deliverables', 'Create Service (62433)', 'service', 'Atlas_Service', 'created'],
   ['Service Update', 'Deliverables', 'View & Edit Service', 'service-update', 'Atlas_ServiceUpdate'],
+  ['Conversation Message', 'Conversations', 'Write Conversation Message', 'conversation-message', 'Atlas_ConversationMessage'],
 ].map(([module, entity, title, dir, filePrefix, records]) => ['./reporters/module-reporter.js', {
   module, entity, title, outputDir: `${modulesDir}/${dir}`, filePrefix, ...(records ? { records } : {}),
 }]) : [];
