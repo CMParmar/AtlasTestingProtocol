@@ -65,6 +65,7 @@ const projectCases = {
   },
   typeNoDefault: {
     id: 'TC_PRJ_006', severity: 'critical',
+    defect: 'NOT IMPLEMENTED: the Create Project form has no Project Type control yet (use case 63342).',
     name: 'Project Type control is present with no default',
     description: 'Verify the form exposes the required Project Type control (Estimation / Delivery) with no value selected (MF-1, 63342).',
     condition: 'Create Project page opened.',
@@ -231,6 +232,7 @@ const projectCases = {
   },
   invalidAccount: {
     id: 'TC_PRJ_027', type: 'Negative', severity: 'minor',
+    defect: 'An unknown AccountID in /Project/Create?AccountID=... gives an Access Denied page instead of an empty Account selector.',
     name: 'Unknown AccountID does not pre-populate an Account',
     description: 'Verify /Project/Create?AccountID=<unknown id> opens without an error and leaves the Account selector empty (MF-1).',
     condition: 'AccountID that does not exist (999999999).',
@@ -277,7 +279,7 @@ const projectCases = {
     condition: 'Existing Account; required controls plus the optional fields populated.',
     expected: 'The saved project shows the Project Code, Description, Primary Billing Type and Estimated Hours entered.',
     projectName: projectName('Details'), projectType: 'Estimation',
-    details: { projectCode: `PW-${tag.replace(/\D/g, '').slice(-6)}`, description: `${kw} project created by automation ${tag}`, billingType: 'Fixed Fee', estimatedHours: '120' },
+    details: { projectCode: `PW-${tag.replace(/\D/g, '').slice(-6)}`, description: `${kw} project created by automation ${tag}`, billingType: 'Fixed Price', estimatedHours: '120' },
   },
   scheduleDates: {
     id: 'TC_PRJ_033', severity: 'normal',

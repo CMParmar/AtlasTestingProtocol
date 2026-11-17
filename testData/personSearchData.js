@@ -435,7 +435,6 @@ const cases = {
     condition: `Quick Search "${DATA.firstName}".`, expected: 'No partial-name row is ranked above an exact-name row.',
   }),
   orderUsers: tc(58, {
-    defect: 'Users are not ranked before non-users (spec 4.4): results come back alphabetical by Full Name only.',
     severity: 'normal', name: 'People with user accounts before people without',
     description: 'Verify that, after exact matches, users are listed before non-users (4.4).',
     condition: `Last Name contains "${DATA.lastName.slice(0, -1)}" (no exact email / phone match).`,

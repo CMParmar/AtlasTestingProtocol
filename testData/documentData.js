@@ -2,7 +2,7 @@ const { env } = require('../utils/testData');
 
 /**
  * Use case 62431 - Add Document (module CORE). The parent entity under test is a Project
- * (/Project/Edit/{DOCUMENT_PROJECT_ID}, default = TASK_PROJECT_ID = 819) whose Documents tab is enabled in the sandbox.
+ * (/Project/Edit/{DOCUMENT_PROJECT_ID}, default = TASK_PROJECT_ID, else 818 (819 became too slow to load)) whose Documents tab is enabled in the sandbox.
  * Test case ids follow the use case's test matrix (TC-01 .. TC-22).
  * Documents created by a run carry the run tag (MMDD-HHmmss) so they are easy to find on the Documents tab.
  */

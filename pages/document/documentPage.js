@@ -85,7 +85,15 @@ class DocumentPage extends BasePage {
   }
 
   categoryLabel(name) {
-    return this.form.locator('.custom-radio label').filter({ hasText: new RegExp(`^\\s*${name}\\s*$`) });
+    // category captions are localized per user: use the stable radio ids (DocumentCategoryIDF_1..4, DOCUMENT.CATEGORIES order)
+    const index = DOCUMENT.CATEGORIES.indexOf(name);
+    if (index < 0) throw new Error(`Unknown document category "${name}"`);
+    return this.form.locator(`label[for="DocumentCategoryIDF_${index + 1}"]`);
+  }
+
+  /** The category's caption as the user sees it (localized). */
+  async categoryCaption(name) {
+    return (await this.categoryLabel(name).innerText()).trim();
   }
 
   validationMessageFor(field) {
@@ -107,7 +115,15 @@ class DocumentPage extends BasePage {
   /** Opens /Project/Edit/{id} and waits for the record's tabs. */
   async openParent(id = DOCUMENT.PARENT_PROJECT_ID) {
     // the shared parent accumulates documents and audit history, so its page can take ~20s+ to render: allow for it
-    await this.openRecord(`/Project/Edit/${id}`, { timeout: 120_000 });
+    // a stuck request usually succeeds on a later attempt, so try up to 3 times with a bounded wait instead of one 120s wait
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await this.openRecord(`/Project/Edit/${id}`, { timeout: 50_000 });
+        break;
+      } catch (e) {
+        if (attempt >= 4) throw e;
+      }
+    }
     await this.page.locator('main .nav-tabs .nav-link').first().waitFor({ timeout: 60_000 });
   }
 
@@ -134,12 +150,13 @@ class DocumentPage extends BasePage {
     // the default StorageType is looked up after the drawer renders: wait for it so the radios are settled
     const defaultLookup = this.page.waitForResponse(r => /\/Documents\/GetDefaultStorageType/i.test(r.url()), { timeout: 8_000 }).catch(() => null);
     await Promise.all([
-      this.page.waitForResponse(r => /\/Documents\/CreateDocument/i.test(r.url())),
+      this.page.waitForResponse(r => /\/Documents\/CreateDocument/i.test(r.url()), { timeout: 45_000 }),
       this.addButton.first().click(),
     ]);
     await this.form.waitFor({ state: 'visible' });
     await defaultLookup;
-    await this.page.waitForLoadState('networkidle').catch(() => {});
+    // bounded: a page that keeps polling never goes idle, and an unbounded wait would eat the whole test timeout
+    await this.page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => {});
     await this.page.waitForTimeout(300);
   }
 
@@ -170,7 +187,8 @@ class DocumentPage extends BasePage {
   async fillUrl(url) {
     await this.urlInput.fill(url);
     await this.urlInput.blur();
-    await this.descriptionInput.click();
+    // move focus on (the blur already ran); a bounded focus can't hang the test if the field is mid-animation
+    await this.descriptionInput.focus({ timeout: 5_000 }).catch(() => {});
   }
 
   async fillDescription(text) {
@@ -244,9 +262,21 @@ class DocumentPage extends BasePage {
 
   /** Number printed in "Result: N" (0 when the empty state is shown). */
   async getResultCount() {
-    if (await this.emptyState.isVisible()) return 0;
-    const text = await this.resultCount.first().innerText();
-    return Number((text.match(/\d+/) || [0])[0]);
+    // the counter refreshes a moment after the list: read until two reads in a row agree
+    const read = async () => {
+      if (await this.emptyState.isVisible()) return 0;
+      const text = await this.resultCount.first().innerText();
+      return Number((text.match(/\d+/) || [0])[0]);
+    };
+    await this.page.waitForLoadState('networkidle', { timeout: 3_000 }).catch(() => {});
+    let last = await read();
+    for (let i = 0; i < 6; i++) {
+      await this.page.waitForTimeout(800);
+      const now = await read();
+      if (now === last) return now;
+      last = now;
+    }
+    return last;
   }
 
   async getCardTitles() {
@@ -265,7 +295,9 @@ class DocumentPage extends BasePage {
   /** Meta lines of a card as { Category, Description, Uploaded, 'Uploaded by' }. */
   async getCardMeta(title) {
     const lines = await this.card(title).locator('.doc-meta strong').evaluateAll(els => els.map(e => [e.textContent.replace(':', '').trim(), e.parentElement.textContent.replace(e.textContent, '').trim()]));
-    return Object.fromEntries(lines);
+    // the captions are localized per user: re-key by position (Category, [Description], Uploaded, Uploaded by)
+    const keys = lines.length >= 4 ? ['Category', 'Description', 'Uploaded', 'Uploaded by'] : ['Category', 'Uploaded', 'Uploaded by'];
+    return Object.fromEntries(lines.map(([caption, value], i) => [keys[i] || caption, value]));
   }
 
   /** Opens the edit drawer (GET /Documents/GetDocument/{id}) of the card with this title. */
@@ -275,7 +307,7 @@ class DocumentPage extends BasePage {
       this.card(title).locator('.doc-edit').click(),
     ]);
     await this.form.waitFor({ state: 'visible' });
-    await this.page.waitForLoadState('networkidle').catch(() => {});
+    await this.page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => {});
   }
 
   /** Edit drawer, StorageType File: picks a replacement file (button reads "Replace File"). */
@@ -334,6 +366,28 @@ class DocumentPage extends BasePage {
   async deleteDocument(title) {
     await this.openDeleteConfirmation(title);
     await this.confirmDelete();
+  }
+
+  /**
+   * Soft-deletes only the documents THIS run created: titles that start with "ATL " and end with the run tag
+   * (see testData/documentData.js `name`). They pile up on the shared parent and slow its page down. Best effort: never throws.
+   * @param {{ runTag: string, max?: number }} options
+   * @returns {Promise<number>} how many were deleted
+   */
+  async cleanUpTestDocuments({ runTag, max = 80 } = {}) {
+    let deleted = 0;
+    if (!runTag) return deleted;   // without the tag the scope cannot be limited to this run
+    try {
+      await this.openParentDocuments();
+      for (let i = 0; i < max; i++) {
+        const titles = (await this.getCardTitles()).filter(t => t.startsWith('ATL ') && t.endsWith(` ${runTag}`));
+        if (!titles.length) break;
+        await this.deleteDocument(titles[0]);
+        await this.card(titles[0]).first().waitFor({ state: 'detached', timeout: 15_000 }).catch(() => {});
+        deleted++;
+      }
+    } catch { /* best effort */ }
+    return deleted;
   }
 
   // ---- Fast creation of fixtures for the View & Edit tests -------------------------

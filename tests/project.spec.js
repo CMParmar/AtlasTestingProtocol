@@ -3,7 +3,7 @@ const { env } = require('../utils/testData');
 const { MODULE, TEXT, TYPES, projectCases: c } = require('../testData/projectData');
 const { ProjectPage } = require('../pages/project/projectPage');
 const { resolveProjectAccount } = require('../utils/projectAccount');
-const { tcDetails, tcTitle, applyAllureLabels, recordTestValues, recordCreated, recordUrl } = require('../utils/testCase');
+const { tcDetails, tcTitle, applyAllureLabels, recordTestValues, recordCreated, recordUrl, knownDefect } = require('../utils/testCase');
 const { expectNotSaved } = require('../utils/negative');
 
 /**
@@ -139,6 +139,7 @@ test.describe('Project - Create Project (62422)', () => {
   });
 
   test(tcTitle(c.typeNoDefault), tcDetails(c.typeNoDefault, MODULE), async ({ projectPage }, testInfo) => {
+    knownDefect(testInfo, c.typeNoDefault);   // not implemented in the app yet: expected to fail
     await openForm(projectPage, testInfo, c.typeNoDefault);
     const present = await projectPage.hasProjectType();
     await recordTestValues(testInfo, { 'Project Type control': present ? 'present' : 'missing' });
@@ -380,6 +381,7 @@ test.describe('Project - Create Project (62422)', () => {
 
   test(tcTitle(c.invalidAccount), tcDetails(c.invalidAccount, MODULE), async ({ projectPage, page }, testInfo) => {
     const tc = c.invalidAccount;
+    knownDefect(testInfo, tc);   // confirmed app defect: expected to fail
     await applyAllureLabels(tc, MODULE);
     await projectPage.openRecord(ProjectPage.createPath(tc.accountId));
     await recordUrl(testInfo, page.url(), 'Create Project (unknown AccountID)');

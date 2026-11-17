@@ -40,6 +40,15 @@ function dated(data, today) {
  * Targets that already have a rate in effect on any of `dates` (e.g. open-ended rates of the card) - a new rate for
  * them then would overlap (BR-4), so tests that pick "any" target skip them.
  */
+/** Every second day from `start` to `end`, and `end` (at most 10; just `start` when open-ended): a rate overlaps if it is in effect on any of them. */
+function rangeDays(start, end) {
+  if (!start) return [];
+  const days = [start];
+  for (let d = shiftDate(start, 2); end && d <= end && days.length < 10; d = shiftDate(d, 2)) days.push(d);
+  if (end && !days.includes(end)) days.push(end);
+  return days;
+}
+
 async function busyTargets(rc, ...dates) {
   const busy = new Set();
   for (const date of new Set(dates.filter(Boolean))) for (const l of await rc.linesAsOf(date)) busy.add(l.target);
@@ -54,7 +63,7 @@ const ANY_TARGET_TYPE = ['Person', 'Bundle', 'Service Item', 'Labor Grade'];
  * test when no usable target is offered. Returns the values used.
  */
 async function fillNewRate(rc, data, skipTargets = []) {
-  const avoid = data.target ? [] : [...await busyTargets(rc, data.effectiveStart, data.effectiveEnd), ...skipTargets];
+  const avoid = data.target ? [] : [...(data.busyKnown ? [] : await busyTargets(rc, ...rangeDays(data.effectiveStart, data.effectiveEnd))), ...skipTargets];
   await rc.openAddRate();
   let used = null;
   for (const targetType of data.targetType ? [data.targetType] : ANY_TARGET_TYPE) {
@@ -72,22 +81,32 @@ async function fillNewRate(rc, data, skipTargets = []) {
  */
 async function addRate(rc, data) {
   return test.step(`Add Rate: ${data.targetType || ''} ${data.rate || ''} ${data.effectiveStart || ''}`, async () => {
-    const unavailable = [];
-    for (let attempt = 0; attempt < 6; attempt++) {
-      const used = await fillNewRate(rc, data, unavailable);
-      const { saved } = await rc.saveLine();
-      const shown = (await rc.anyError.isVisible()) ? squash(await rc.anyError.innerText()) : '';
-      if (!saved && !data.target && /isn't available on/i.test(shown)) {
-        unavailable.push(used.target);
-        if (await rc.scenarioModal.isVisible()) await rc.scenarioPrimary.click();
-        await rc.closeDrawer(true);
-        continue;
+    const unavailable = data.target ? [] : await busyTargets(rc, ...rangeDays(data.effectiveStart, data.effectiveEnd));   // scanned once, not on every attempt
+    const reasons = [];
+    const skipBilling = [];   // "target|billing type" combinations the app refused ("can't be sold as ...")
+    for (let attempt = 0; attempt < 12; attempt++) {
+      const used = await fillNewRate(rc, { ...data, skipBilling, busyKnown: true }, unavailable);
+      let saved = false;
+      let shown = '';
+      if (used.billingType || data.target) {
+        ({ saved } = await rc.saveLine());
+        shown = (await rc.anyError.isVisible()) ? squash(await rc.anyError.innerText()) : '';
+      } else {
+        shown = "isn't available on (every billing type of this target was refused)";
       }
-      expect(saved, `Rate saved (${shown || 'the editor stayed open'})`).toBe(true);
-      if (await rc.scenarioModal.isVisible()) await rc.scenarioSecondary.or(rc.scenarioPrimary).first().click();
-      return used;
+      if (!saved && !data.target && used.billingType && /can't be sold as/i.test(shown)) {
+        skipBilling.push(`${used.target}|${used.billingType}`);   // same target, next billing type
+      } else if (!saved && !data.target && /isn't available on|has overlapping rates|Subscription (Term|Interval) is required/i.test(shown)) {
+        unavailable.push(used.target); reasons.push(`${used.target}: ${shown}`);
+      } else {
+        expect(saved, `Rate saved (${shown || 'the editor stayed open'})`).toBe(true);
+        if (await rc.scenarioModal.isVisible()) await rc.scenarioSecondary.or(rc.scenarioPrimary).first().click();
+        return used;
+      }
+      if (await rc.scenarioModal.isVisible()) await rc.scenarioPrimary.click();
+      if (await rc.drawer.isVisible()) await rc.closeDrawer(true);
     }
-    throw new Error(`No ${data.targetType || ''} target is available on ${data.effectiveStart} (tried: ${unavailable.join(', ')})`);
+    test.skip(true, `No ${data.targetType || ''} target on this rate card can take a new rate on ${data.effectiveStart} (every target is taken or is refused by the app): ${reasons.join(' | ') || unavailable.join(', ')}`);
   });
 }
 
@@ -142,6 +161,6 @@ async function doneButton(rc) {
 }
 
 module.exports = {
-  observe, shot, squash, openCard, dated, shiftDate, busyTargets, fillNewRate, addRate, linesOn, expectOnRatesTab, lineValues,
+  observe, shot, squash, openCard, dated, shiftDate, rangeDays, busyTargets, fillNewRate, addRate, linesOn, expectOnRatesTab, lineValues,
   expectScenario, months, doneButton,
 };

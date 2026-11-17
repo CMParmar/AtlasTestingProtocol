@@ -1,6 +1,6 @@
 const { test, expect } = require('../fixtures/fixtures');
 const { companyNegativeCases: c } = require('../testData/companyNegativeData');
-const { tcDetails, tcTitle, applyAllureLabels, recordTestValues } = require('../utils/testCase');
+const { tcDetails, tcTitle, applyAllureLabels, recordTestValues, knownDefect } = require('../utils/testCase');
 const { expectNotSaved, expectValidationMessage, expectDrawerRejected } = require('../utils/negative');
 
 const MODULE = 'Company';
@@ -60,6 +60,7 @@ test.describe('Company - Negative validation', () => {
 
   test(tcTitle(c.invalidZip), tcDetails(c.invalidZip, MODULE), async ({ companyPage }, testInfo) => {
     const tc = c.invalidZip;
+    knownDefect(testInfo, tc);   // confirmed app defect: expected to fail until the ZIP is validated
     await applyAllureLabels(tc, MODULE);
     await recordTestValues(testInfo, tc.data);
 

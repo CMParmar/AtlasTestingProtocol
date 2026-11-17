@@ -69,7 +69,6 @@ const cases = {
     severity: 'critical', name: 'Last-used sort is restored when the page opens',
     description: 'Verify the primary and secondary sort chosen last are shown and used the next time the page opens (MF-1, MF-5).',
     condition: `${page} in Card view; primary sort = Email, secondary = Display Name; page reopened.`,
-    defect: 'Sort-bar changes are never saved (no SaveColumnPreferences request); after reopening the sort is back to Full Name / None (same defect as TC_SRC_016).',
     expected: 'Sort selectors show Email / Display Name after reopening.',
   }),
 

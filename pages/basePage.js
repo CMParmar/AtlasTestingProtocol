@@ -25,12 +25,14 @@ class BasePage {
     this.quickSearchInput = page.locator('#quickSearchInput');
     this.quickSearchButton = page.locator('#quickSearchButton');
     this.sandboxBanner = page.getByText('This is the sandbox.');
-    this.recordAddedMessage = page.getByText('Your new record has been added.');
+    this.recordAddedMessage = page.getByText('Your new record has been added.').or(page.locator('.alert-success, .toast-success, .toast.show'));   // the text is localized per user
     // slide-out drawers (phone / address): the panel carries "is-open" while shown.
     // (a closed drawer only slides off-screen, so visibility alone can't be trusted)
     this.openDrawer = page.locator('.is-open').filter({ has: page.locator('.right-drawer__close') });
     // record (edit) pages: CORE-2 "Record saved successfully." - must not match the sandbox banner ("...will not be saved long-term")
+    // the UI is localized per user (sandbox user may be on Gujarati), so the success alert (.alert-success) counts as well as the English text
     this.savedMessage = page.getByText(/record saved successfully|(has|have) been (saved|updated)|(saved|updated) successfully/i)
+      .or(page.locator('.alert-success'))
       .filter({ visible: true }).first();
     this.dirtyModal = page.locator('#dirtyRecordWarningModal');
     // any sidebar link that is not marked jqBypassDirtyCheck triggers the dirty-record check
@@ -55,9 +57,30 @@ class BasePage {
     }
   }
 
+  /**
+   * openRecord for a record that was just created: on the slow sandbox it can answer "RecordNotFound" for a moment, or
+   * the navigation can be aborted, so retry a few times.
+   */
+  async openCreatedRecord(path) {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        await this.openRecord(path);
+      } catch (e) {
+        if (attempt === 3 || !/ERR_ABORTED|Timeout/i.test(e.message)) throw e;
+      }
+      if (!/RecordNotFound/i.test(this.page.url())) return;
+      await this.page.waitForTimeout(3_000);
+    }
+  }
+
   /** Record tab (Details, People, Accounts, Documents, Tasks, Audit). */
   tab(name) {
-    return this.page.locator('main').getByText(name, { exact: true }).filter({ visible: true }).first();
+    // Person / Company pages: #tab-<name>-btn (captions are localized per user); otherwise by caption
+    const key = name.toLowerCase();
+    const personPane = { accounts: 'newacct', documents: 'docs' }[key] || key;   // Person page: data-bs-target="#pane-..."
+    return this.page.locator(`main #tab-${key}-btn, main button.nav-link[data-bs-target="#pane-${personPane}"]`)
+      .or(this.page.locator('main').getByText(name, { exact: true }))
+      .filter({ visible: true }).first();
   }
 
   async openTab(name) {

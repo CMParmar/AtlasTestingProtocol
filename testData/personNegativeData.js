@@ -60,6 +60,7 @@ const personNegativeCases = {
     description: 'Verify a US address with a non-numeric ZIP ("ABCDE") is rejected.',
     condition: 'User is logged in; Add Address drawer is open; State = Texas; ZIP = letters.',
     expected: 'A validation error is shown for the ZIP and the address is not added.',
+    defect: 'The Address drawer does no ZIP format validation: a non-numeric ZIP is accepted and the address is added to the person.',
     data: {
       address: { type: 'Mailing', recipientName: `Ethan ${kw} Brooks`, address1: '901 Invalid Zip Lane', city: 'Austin', state: 'Texas', postalCode: 'ABCDE' },
     },

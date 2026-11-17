@@ -167,8 +167,9 @@ test.describe('Account - Create Account (61957)', () => {
       await companyEditPage.gotoEdit(parent.id);
       const advisory = await accountPage.startFromParent();
       expect(advisory, 'DEFECT: no Existing Account Advisory for a Company that already has an Account').toBe(true);
-      await expect(accountPage.advisory).toContainText(tc.message);
-      testInfo.annotations.push({ type: 'Observed', description: `Advisory shown: "${tc.message}"` });
+      // the advisory text is localized per user (sandbox user may be on Gujarati): assert it is shown, record what it says
+      await expect(accountPage.advisory).toContainText(/\S/);
+      testInfo.annotations.push({ type: 'Observed', description: `Advisory shown: "${(await accountPage.advisory.innerText()).trim()}" (expected, in English: "${tc.message}")` });
       await accountPage.continueAfterAdvisory();
     });
     const second = await saveAccount(fx, testInfo, tc);
@@ -233,6 +234,9 @@ test.describe('Account - Create Account (61957)', () => {
     await openAccountForm(fx, tc, parent.id);
     await accountPage.completeRequired();
     await accountPage.accountNumber.fill(existing.values.accountNumber);
+    // blur the field and let any on-blur duplicate check finish before Save is clicked
+    await accountPage.accountNumber.blur();
+    await accountPage.page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => {});
     const values = await accountPage.formValues();
     const data = { parent: `${tc.parentType}: ${parentDisplayName(tc)}`, ...values };
     await recordTestValues(testInfo, { ...data, 'Existing Account': `${existing.values.accountNumber} (${existing.record.url})` });

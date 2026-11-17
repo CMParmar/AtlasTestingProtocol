@@ -2,6 +2,7 @@
 // No assertions here -- methods act or return values; specs assert.
 
 const { BasePage } = require('../basePage');
+const { expect } = require('@playwright/test');
 const { ROUTES } = require('../../utils/constants');
 
 class TaskPage extends BasePage {
@@ -37,6 +38,18 @@ class TaskPage extends BasePage {
 
   async navigateToTaskPage() {
     await this.goto(ROUTES.TASK);
+  }
+
+  /**
+   * The Assignments filters are saved per user, so a keyword/filter left by another spec hides
+   * newly created tasks. Clears them when any filter chip is showing.
+   */
+  async clearSavedFilters() {
+    const chips = this.page.locator('#assignments-filter-chips [data-chip-key]');
+    if (!(await chips.count())) return;
+    await this.page.locator('#btnAssignmentsFilters').click();
+    await this.page.locator('#btnAssignmentsReset').click();
+    await expect(chips).toHaveCount(0);
   }
 
   async openCreateTaskDrawer() {

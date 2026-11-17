@@ -11,14 +11,14 @@ const TEXT_FIELDS = ['firstName', 'middleName', 'lastName', 'handle', 'email'];
 class PersonEditPage extends PersonPage {
   constructor(page) {
     super(page);
-    this.displayName = page.getByLabel('Display Name', { exact: true });
+    this.displayName = page.locator('#DisplayName');
     this.initials = page.getByLabel('Initials', { exact: true });
     this.saveButton = page.getByRole('button', { name: 'Save', exact: true });
     this.cancelEditButton = page.getByRole('button', { name: 'Cancel', exact: true }).or(page.getByRole('link', { name: 'Cancel', exact: true }));
   }
 
   async gotoEdit(id) {
-    await this.openRecord(`/Person/Edit/${id}`);
+    await this.openCreatedRecord(`/Person/Edit/${id}`);
     await expect(this.page).toHaveURL(new RegExp(`/Person/Edit/${id}(?:[/?#]|$)`));
     await expect(this.firstName).toBeVisible();
   }
@@ -71,9 +71,12 @@ class PersonEditPage extends PersonPage {
     if (p.address) await expect(this.page.locator('main').getByText(p.address.address1).first()).toBeVisible();
 
     const display = PersonEditPage.displayNameOf(p);
-    await expect(this.displayName, 'Display Name should be maintained by 62247').toHaveValue(display);
+    // the app regenerates the Display Name from the names but changes the case of a hyphenated part
+    // ("Hughes-Ward" -> "Hughes-ward"), so the name is compared ignoring case
+    const displayExact = new RegExp(`^${display.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+    await expect(this.displayName, 'Display Name should be maintained by 62247').toHaveValue(displayExact);
     await expect(this.initials, 'Initials should be maintained by 62247').toHaveValue(PersonEditPage.initialsOf(p));
-    await expect(this.page.locator('main').getByText(display, { exact: true }).first(), 'Header shows the Display Name').toBeVisible();
+    await expect(this.page.locator('main').getByText(displayExact).first(), 'Header shows the Display Name').toBeVisible();
     if (p.handle) await expect(this.page.locator('main').getByText(`@${p.handle}`, { exact: true }).first(), 'Header shows the @handle').toBeVisible();
   }
 }

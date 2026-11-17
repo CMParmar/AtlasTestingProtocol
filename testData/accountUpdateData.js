@@ -20,10 +20,10 @@ const MODULE = 'Account Update';
 
 const MESSAGES = {
   numberInUse: 'This account number is already in use.',
-  numberRequired: 'Account number is required.',
+  numberRequired: 'Account Number is required.',
   deleted: 'Account deleted successfully.',
   restored: 'Account restored successfully.',
-  useOwnerBilling: 'Are you sure you want this account to use the',
+  useOwnerBilling: 'This option will replace the current address with',
 };
 
 /** Five accounts: each one is viewed, updated, saved and re-opened to confirm the change persisted. */
@@ -60,9 +60,9 @@ const accountUpdateCases = [
     name: 'View & update Time Zone and Billing Type',
     description: 'Verify the Time Zone (ordinary field) and the Default Billing Type (billing field) can be changed (MF-2, MF-5, QA-15).',
     condition: 'User has PERM.ACCT.Account.Update and PERM.ACCT.Account.ManageBillingSettings.',
-    expected: '"Record saved successfully." is shown; after re-opening, Time Zone is "Pacific Standard Time" and Billing Type is "Fixed Fee".',
+    expected: '"Record saved successfully." is shown; after re-opening, Time Zone is "Pacific Standard Time" and Billing Type is "Fixed Price".',
     parent: company('Acct Upd Billing Type'),
-    update: { timeZone: 'Pacific Standard Time', billingType: 'Fixed Fee' },
+    update: { timeZone: 'Pacific Standard Time', billingType: 'Fixed Price' },
   },
   {
     id: 'TC_AEU_005', severity: 'critical',
@@ -109,7 +109,7 @@ const accountUpdateExtraCases = {
     name: 'Switch an own billing address back to the owner\'s billing address',
     description: 'Verify that turning "Use owner billing address" on for an Account with its own address asks for confirmation and, once confirmed, the owner\'s address is used (AF-14).',
     condition: 'Company has a Billing address; Account was created with its own billing address.',
-    expected: `A confirmation is shown (use case text: "${MESSAGES.useOwnerBilling} <owner> billing address..."); after Continue and Save the Account uses the owner's (Houston) address.`,
+    expected: `A confirmation is shown (use case text: "${MESSAGES.useOwnerBilling} <owner>'s billing address."); after Continue and Save the Account uses the owner's (Houston) address.`,
     parent: company('Acct Owner Billing', { address: billing('Owner HQ', '901 Bagby Street', 'Houston', 'Texas', '77002') }),
     ownAddress: billing('Own Billing', '1500 Louisiana Street', 'Houston', 'Texas', '77002'),
     update: { useParentBilling: true },

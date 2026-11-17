@@ -59,7 +59,7 @@ const MANAGE_TASK = Object.freeze({
 // Sign In (use case 62290). Wording comes from the requirement document.
 const DOCUMENT = Object.freeze({
   // Parent entity the Add Document suite works on: /Project/Edit/{id} (Projects have DocumentsEnabled in the sandbox)
-  PARENT_PROJECT_ID: process.env.DOCUMENT_PROJECT_ID || process.env.TASK_PROJECT_ID || '819',
+  PARENT_PROJECT_ID: process.env.DOCUMENT_PROJECT_ID || process.env.TASK_PROJECT_ID || '818',
   STORAGE: Object.freeze({ FILE: 'file', CLOUD: 'cloud' }),
   STORAGE_ID: Object.freeze({ file: 2, cloud: 1 }),
   CATEGORIES: ['Specification', 'Prototype', 'Test', 'Issue Document'],

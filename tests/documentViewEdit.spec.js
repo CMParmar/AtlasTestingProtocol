@@ -3,7 +3,7 @@
 // switching StorageType, soft delete (with confirmation) and the audit of the parent.
 // Uses the authenticated storageState from the setup project (functional project, no retries: a retried test would add a second document).
 //
-// Every test creates its own documents on the shared parent (Project DOCUMENT_PROJECT_ID, default 819), named with the run tag.
+// Every test creates its own documents on the shared parent (Project DOCUMENT_PROJECT_ID, default 818), named with the run tag.
 // Delete in the application is a SOFT delete ("hidden but not permanently removed"), so tests may delete the documents they created.
 //
 // Not automated (needs users / settings the UI cannot set up, or functionality that does not exist yet):
@@ -19,6 +19,8 @@ const { test, expect } = require('../fixtures/fixtures');
 const { DOCUMENT } = require('../utils/constants');
 const { name, VIEW_EDIT_MODULE: MODULE, viewEditCases: c } = require('../testData/documentData');
 const { tcDetails, tcTitle, recordTestValues, recordUrl } = require('../utils/testCase');
+const { DocumentPage } = require('../pages/document/documentPage');
+const { env } = require('../utils/testData');
 
 const { STORAGE } = DOCUMENT;
 
@@ -31,6 +33,21 @@ function makeFile(fileName, content = 'Atlas document test') {
 }
 
 test.describe('View & Edit Document (62432)', () => {
+  // the shared parent (Project 819) loads slowly in the sandbox and some tests reload it twice: allow for that
+  test.beforeEach(() => { test.setTimeout(300_000); });
+
+  // every run leaves ~20 documents on the shared parent, which slows its page down: soft-delete them when the file is done
+  test.afterAll(async ({ browser }, testInfo) => {
+    testInfo.setTimeout(600_000);
+    const { storageState, baseURL } = testInfo.project.use;
+    const context = await browser.newContext({ storageState, baseURL });
+    try {
+      await new DocumentPage(await context.newPage()).cleanUpTestDocuments({ runTag: env.runTag });
+    } finally {
+      await context.close();
+    }
+  });
+
   // ---------- MF-2: View ----------
   test(tcTitle(c.viewFile), tcDetails(c.viewFile, MODULE), async ({ documentPage, page }, testInfo) => {
     const title = name('View File');
@@ -232,7 +249,7 @@ test.describe('View & Edit Document (62432)', () => {
     await documentPage.waitForUploadComplete();
     await documentPage.saveAndWait();
     await expect(documentPage.card(title)).toBeVisible();
-    expect(await documentPage.getCardSubtitle(title), 'Only the file data is saved').toBe('TXT file');
+    await expect(documentPage.cardSubtitleLocator(title), 'Only the file data is saved').toHaveText('TXT file');
   });
 
   test(tcTitle(c.fileToCloud), tcDetails(c.fileToCloud, MODULE), async ({ documentPage }, testInfo) => {
@@ -247,7 +264,7 @@ test.describe('View & Edit Document (62432)', () => {
     await documentPage.fillUrl(DOCUMENT.DROPBOX_URL);
     await documentPage.saveAndWait();
     await expect(documentPage.card(title)).toBeVisible();
-    expect(await documentPage.getCardSubtitle(title), 'Only the cloud link is saved').toBe('Link document');
+    await expect(documentPage.cardSubtitleLocator(title), 'Only the cloud link is saved').toHaveText('Link document');
     await expect(documentPage.downloadButton(title), 'No Download once it is a cloud link').toHaveCount(0);
   });
 
