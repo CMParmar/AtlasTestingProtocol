@@ -1,4 +1,4 @@
-name: Atlas Testing Protocol
+name: Playwright Tests
 on:
   workflow_dispatch:
     inputs:
