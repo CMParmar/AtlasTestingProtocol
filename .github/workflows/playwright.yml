@@ -1,13 +1,22 @@
-name: Playwright Tests
+name: Atlas Testing Protocol
 on:
   workflow_dispatch:
+  inputs:
+      tests:
+        description: 'Spec files or folders to run (space-separated, e.g. tests/person.spec.js tests/company.spec.js). Leave empty for all.'
+        required: false
+        default: ''
+      grep:
+        description: 'Only run tests whose title matches this text (optional)'
+        required: false
+        default: ''
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
 jobs:
   test:
-    timeout-minutes: 180
+    timeout-minutes: 360
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
@@ -19,7 +28,7 @@ jobs:
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
     - name: Run Playwright tests
-      run: npx playwright test
+      run: npx playwright test ${{ inputs.tests }} ${{ inputs.grep && format('--grep "{0}"', inputs.grep) || '' }} --workers=1
       env:
         BASE_URL: ${{ secrets.BASE_URL }}
         USER_EMAIL: ${{ secrets.USER_EMAIL }}

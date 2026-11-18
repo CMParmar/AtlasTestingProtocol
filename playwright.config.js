@@ -44,14 +44,17 @@ const moduleReporters = hasReporter('module-reporter.js') ? [
   ['Service', 'Deliverables', 'Create Service (62433)', 'service', 'Atlas_Service', 'created'],
   ['Service Update', 'Deliverables', 'View & Edit Service', 'service-update', 'Atlas_ServiceUpdate'],
   ['Conversation Message', 'Conversations', 'Write Conversation Message', 'conversation-message', 'Atlas_ConversationMessage'],
+  ['Conversation Follow', 'Conversations', 'Follow & Unfollow a Conversation', 'conversation-follow', 'Atlas_ConversationFollow'],
+  ['Conversation Star', 'Conversations', 'Star & Unstar a Conversation', 'conversation-star', 'Atlas_ConversationStar'],
+  ['Notify User', 'Conversations', 'Notify User (mention notification eligibility)', 'notify-user', 'Atlas_NotifyUser'],
 ].map(([module, entity, title, dir, filePrefix, records]) => ['./reporters/module-reporter.js', {
   module, entity, title, outputDir: `${modulesDir}/${dir}`, filePrefix, ...(records ? { records } : {}),
 }]) : [];
 
 export default defineConfig({
   testDir: './tests',
-  timeout: 190_000,
-  expect: { timeout: 10_000 },
+  timeout: 60000,
+  expect: { timeout: 10000 },
   retries: 1,
   // Lockout/throttle tests change server state for one user, so run serially
   workers: 1,
