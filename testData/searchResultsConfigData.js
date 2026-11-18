@@ -144,7 +144,6 @@ const cases = {
     description: 'Verify choosing a primary sort column and direction reorders the results (MF-8 "Results order updates").',
     condition: `${page} in Card view; primary sort = Full Name, then direction switched to descending.`,
     expected: 'Results are requested with Full Name DESC and the cards are shown Z -> A.',
-    defect: 'The sort-bar direction change requests Full Name DESC, but the cards stay in A -> Z order (the request\'s order is ignored).',
   }),
   sortBarSaved: tc(16, {
     severity: 'critical', name: 'Primary and secondary sort are saved',
@@ -166,14 +165,12 @@ const cases = {
     description: 'Verify clicking a grid heading sorts ascending by it, the old primary becomes secondary, and the heading is marked as primary (MF-8.5).',
     condition: `${page} in Data Grid; primary sort = Full Name ASC; Email heading clicked.`,
     expected: 'Results requested with [Email ASC, Full Name ASC]; Email heading marked primary; rows ordered by email.',
-    defect: 'After clicking a heading the results are not reordered and the primary-sort marker stays on the old column.',
   }),
   headerInvert: tc(19, {
     severity: 'critical', name: 'Clicking the same heading again inverts the primary sort',
     description: 'Verify a second click on the primary heading switches it to descending and changes nothing else (MF-8.5).',
     condition: `${page} in Data Grid; Email heading clicked twice.`,
     expected: 'Second request has Email DESC with the same secondary; heading shows descending.',
-    defect: 'A second click on the same heading sends ASC again - the primary sort is never inverted.',
   }),
   headerSecondaryDir: tc(20, {
     severity: 'normal', name: 'Old primary keeps its direction when it becomes secondary',

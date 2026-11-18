@@ -11,14 +11,25 @@ const TEXT_FIELDS = ['tradeName', 'legalName', 'ein', 'website', 'displayName'];
 class CompanyEditPage extends CompanyPage {
   constructor(page) {
     super(page);
-    this.displayName = page.getByLabel('Display Name', { exact: true });
+    this.displayName = page.locator('#DisplayName');   // by id: the label text is localized per user
     this.saveButton = page.getByRole('button', { name: /^Save( & View)?$/ }).first();
     this.signalsButton = page.getByRole('button', { name: /Signals/ }).or(page.getByRole('link', { name: /Signals/ })).first();
     this.actionsMenu = page.locator('main').getByText('Actions', { exact: true }).filter({ visible: true }).first();
+    // a soft-deleted company shows a banner with the Restore link (no longer in the Actions menu); found by its container key, not by caption
+    this.restoreBanner = page.locator('[data-containerkey="Page.EditCompany.RestoreBanner"]');
   }
 
   async gotoEdit(id) {
-    await this.openRecord(`/Company/Edit/${id}`);
+    // a company just created can be "not found" for a moment on the slow sandbox, and a navigation can be aborted: retry
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        await this.openRecord(`/Company/Edit/${id}`);
+      } catch (e) {
+        if (attempt === 3 || !/ERR_ABORTED|Timeout/i.test(e.message)) throw e;
+      }
+      if (!/RecordNotFound/i.test(this.page.url()) && /\/Company\/Edit\//i.test(this.page.url())) break;
+      await this.page.waitForTimeout(3_000);
+    }
     await expect(this.page).toHaveURL(new RegExp(`/Company/Edit/${id}(?:[/?#]|$)`));
     await expect(this.tradeName).toBeVisible();
   }
@@ -72,6 +83,15 @@ class CompanyEditPage extends CompanyPage {
     return name.slice(0, 200).replace(/\s+/g, ' ').trim();
   }
 
+  /**
+   * The app sets Display Name once, when the company is created (Trade Name, else Legal Name), and no longer
+   * regenerates it when the names change; only the user changes it afterwards. The values expected after an edit
+   * (`after` = seed + update) therefore keep the seed's Display Name unless the edit typed a new one.
+   */
+  static keepDisplayName(seed, after) {
+    return { ...after, displayName: after.displayName || seed.displayName || CompanyEditPage.generatedDisplayName(seed.tradeName || seed.legalName) };
+  }
+
   /** Display Name maintained by 62248: Trade Name, else Legal Name, unless the user overwrote it. */
   static displayNameOf(c) {
     return c.displayName || CompanyEditPage.generatedDisplayName(c.tradeName || c.legalName);
@@ -93,11 +113,22 @@ class CompanyEditPage extends CompanyPage {
       await this.actionsMenu.click();
       await this.actionItem(name).click();
       const confirm = this.page.locator('.modal.show').getByRole('button', { name: /^(Delete|Restore|Yes|Confirm|OK)\b/i }).first();
-      if (await confirm.waitFor({ state: 'visible', timeout: 5_000 }).then(() => true, () => false)) await confirm.click();
+      if (await confirm.waitFor({ state: 'visible', timeout: 5_000 }).then(() => true, () => false)) await confirm.click({ noWaitAfter: true });
+      // let the command's request finish before the caller navigates (leaving earlier aborts it: nothing is deleted)
       await this.page.waitForLoadState('domcontentloaded');
+      await this.page.waitForLoadState('networkidle', { timeout: 20_000 }).catch(() => {});
     } finally {
       this.page.off('dialog', accept);
     }
+  }
+
+  /** Restores a soft-deleted company: banner link, then the confirmation modal (first button = confirm, last = Go Back). */
+  async restore() {
+    await this.restoreBanner.locator('a, button').first().click();
+    const modal = this.page.locator('.modal.show');
+    await modal.waitFor({ state: 'visible' });
+    await modal.getByRole('button').first().click();
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   /**

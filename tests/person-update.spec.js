@@ -22,6 +22,23 @@ async function seedPerson(personEditPage, testInfo, tc) {
   });
 }
 
+/** Clicks a sidebar link with unsaved edits: the app shows no warning (no prompt, no modal) and the page is left. */
+async function expectLeavesWithoutWarning(personEditPage, page) {
+  let prompt = '';
+  const onDialog = d => { prompt = d.message(); return d.accept(); };
+  page.on('dialog', onDialog);
+  try {
+    await test.step('Click a sidebar link with unsaved changes', async () => {
+      await personEditPage.leaveLink.click();
+      await expect(page).not.toHaveURL(/\/Person\/Edit\//);
+    });
+  } finally {
+    page.off('dialog', onDialog);
+  }
+  expect(prompt, 'No unsaved-changes prompt is shown').toBe('');
+  await expect(personEditPage.dirtyModal, 'No unsaved-changes modal is shown').toBeHidden();
+}
+
 test.describe('Person - View & Update Person (62386)', () => {
   for (const tc of personUpdateCases) {
     test(tcTitle(tc), tcDetails(tc, MODULE), async ({ personEditPage, page }, testInfo) => {
@@ -91,10 +108,8 @@ test.describe('Person - View & Update Person (62386)', () => {
     const record = await seedPerson(personEditPage, testInfo, tc);
     await personEditPage.gotoEdit(record.id);
     await personEditPage.updateForm(tc.update);
-    const warning = await test.step('Click a sidebar link, then Cancel', () => personEditPage.leaveWithUnsavedChanges('cancel'));
-    testInfo.annotations.push({ type: 'Observed', description: `Warning shown: "${warning}"` });
-    await expect(page).toHaveURL(new RegExp(`/Person/Edit/${record.id}`));
-    await expect(personEditPage.lastName, 'Edited value is kept after Cancel').toHaveValue(tc.update.lastName);
+    // the app no longer warns about unsaved changes: leaving the page just leaves it
+    await expectLeavesWithoutWarning(personEditPage, page);
   });
 
   test(tcTitle(c.unsavedDiscard), tcDetails(c.unsavedDiscard, MODULE), async ({ personEditPage, page }, testInfo) => {
@@ -105,9 +120,7 @@ test.describe('Person - View & Update Person (62386)', () => {
     const record = await seedPerson(personEditPage, testInfo, tc);
     await personEditPage.gotoEdit(record.id);
     await personEditPage.updateForm(tc.update);
-    const warning = await test.step('Click a sidebar link, then Continue Without Saving', () => personEditPage.leaveWithUnsavedChanges('continue'));
-    testInfo.annotations.push({ type: 'Observed', description: `Warning shown: "${warning}"` });
-    await expect(page).not.toHaveURL(/\/Person\/Edit\//);
+    await expectLeavesWithoutWarning(personEditPage, page);
     await test.step('Re-open: changes were discarded', async () => {
       await personEditPage.gotoEdit(record.id);
       await personEditPage.expectDetails(tc.seed);

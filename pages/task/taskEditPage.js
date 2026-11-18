@@ -59,7 +59,17 @@ class TaskEditPage extends TaskPage {
    */
   async showTask(title) {
     await this.taskRows.first().waitFor();
-    await this.pageSizeSelect.selectOption(this.pageSizeSelect.locator('option').last());
+    // the table redraws while the tab loads (the control can be hidden for a moment): wait for it, retry the pick
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        await this.pageSizeSelect.waitFor({ state: 'visible', timeout: 20_000 });
+        await this.pageSizeSelect.selectOption(this.pageSizeSelect.locator('option').last(), { timeout: 10_000 });
+        break;
+      } catch (e) {
+        if (attempt === 3) throw e;
+        await this.page.waitForTimeout(1_000);
+      }
+    }
     const row = this.taskRow(title);
     while (!(await row.isVisible()) && (await this.nextPageButton.isEnabled())) {
       await this.click(this.nextPageButton);
@@ -70,7 +80,7 @@ class TaskEditPage extends TaskPage {
 
   async openTask(title) {
     await (await this.showTask(title)).click();
-    await this.saveButton.waitFor();
+    await this.saveButton.waitFor({ timeout: 45_000 });
   }
 
   /** Reloads the Project's Tasks tab and opens the task, so the values shown come from the database. */
@@ -92,7 +102,7 @@ class TaskEditPage extends TaskPage {
   async createProjectTask({ title, description, dueDate, reminder }) {
     await this.openProjectTasksTab();
     await this.click(this.addTaskFromTabButton);
-    await this.saveButton.waitFor();
+    await this.saveButton.waitFor({ timeout: 45_000 });
     await this.enterTitle(title);
     if (description) await this.enterDescription(description);
     if (dueDate) await this.enterDueDate(dueDate);

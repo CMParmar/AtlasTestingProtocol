@@ -27,9 +27,21 @@ class AccountEditPage extends AccountPage {
   }
 
   async gotoEdit(id) {
-    await this.openRecord(`/Account/Edit/${id}`);
+    await this.openCreatedRecord(`/Account/Edit/${id}`);
     await expect(this.page).toHaveURL(new RegExp(`/Account/Edit/${id}(?:[/?#]|$)`));
     await expect(this.accountNumber).toBeVisible();
+    // the unsaved-changes tracker is created ~2 s after load and snapshots the form then: edits made earlier would count as "saved" values
+    await this.page.waitForFunction(() => !!window.dirtyRecordTracker, null, { timeout: 15_000 }).catch(() => {});
+  }
+
+  /** Account tabs by data-bs-target (#pane-account-<name>): the captions are localized per user. */
+  async openTab(name) {
+    await this.page.locator(`main button.nav-link[data-bs-target="#pane-account-${name.toLowerCase()}"]`).click();
+  }
+
+  /** Success alert shown after delete / restore (language-independent). */
+  get successAlert() {
+    return this.page.locator('.alert-success').filter({ visible: true }).first();
   }
 
   /** Header link to the owner: "Account Owner: <Company / Person display name>". */

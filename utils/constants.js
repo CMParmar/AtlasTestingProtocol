@@ -59,7 +59,7 @@ const MANAGE_TASK = Object.freeze({
 // Sign In (use case 62290). Wording comes from the requirement document.
 const DOCUMENT = Object.freeze({
   // Parent entity the Add Document suite works on: /Project/Edit/{id} (Projects have DocumentsEnabled in the sandbox)
-  PARENT_PROJECT_ID: process.env.DOCUMENT_PROJECT_ID || process.env.TASK_PROJECT_ID || '819',
+  PARENT_PROJECT_ID: process.env.DOCUMENT_PROJECT_ID || process.env.TASK_PROJECT_ID || '818',
   STORAGE: Object.freeze({ FILE: 'file', CLOUD: 'cloud' }),
   STORAGE_ID: Object.freeze({ file: 2, cloud: 1 }),
   CATEGORIES: ['Specification', 'Prototype', 'Test', 'Issue Document'],
@@ -144,6 +144,14 @@ const SIGNAL_CENTER = Object.freeze({
   MAX_LOAD_MS: 15_000,
 });
 
+// Write Conversation Message (module COMM). The Conversation under test is the one of a Project (opened with its "Signals" button);
+// the same parent as Add Document, so its existing documents can be referenced with @doc.
+const CONVERSATION = Object.freeze({
+  PARENT_PROJECT_ID: process.env.CONVERSATION_PROJECT_ID || process.env.DOCUMENT_PROJECT_ID || process.env.TASK_PROJECT_ID || '818',
+  COMPOSER_PLACEHOLDER: /write a comment/i,
+  DIRECTIVES: Object.freeze({ FOLLOWERS: '@followers', DOC: '@doc' }),
+});
+
 const DEFAULT_BASE_URL = 'https://atlassandbox.xeosoftware.com';
 
 module.exports = {
@@ -151,6 +159,7 @@ module.exports = {
   TASK,
   MANAGE_TASK,
   SIGNAL_CENTER,
+  CONVERSATION,
   DOCUMENT,
   SIGN_IN,
   URL_PATTERNS,

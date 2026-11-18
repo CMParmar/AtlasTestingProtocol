@@ -22,8 +22,9 @@ class CompanyPage extends BasePage {
     this.openExistingCompanyLink = page.getByRole('link', { name: 'Open Existing Company' });
     // step 2
     this.entityType = page.locator('#CompanyEntityTypeIDF');
-    this.saveAndViewButton = page.getByRole('button', { name: 'Save & View' });
-    this.saveAndAddAnotherButton = page.getByRole('button', { name: 'Save & Add Another' });
+    // the UI is localized per user (sandbox user may be on Gujarati): the buttons are located by the postSaveAction they set, never by caption
+    this.saveAndViewButton = page.locator('button[type="submit"][onclick*="postSaveAction"][onclick*="\'view\'"]');
+    this.saveAndAddAnotherButton = page.locator('button[type="submit"][onclick*="postSaveAction"][onclick*="\'addAnother\'"]');
     this.phoneDrawer = new PhoneDrawer(page);
     this.addressDrawer = new AddressDrawer(page);
   }
@@ -89,9 +90,9 @@ class CompanyPage extends BasePage {
   }
 
   async saveAndView() {
-    await this.saveAndViewButton.click();
+    await this.saveAndViewButton.click({ noWaitAfter: true });
     await expect(this.page).not.toHaveURL(/\/Company\/(Create|SearchCompany)/, { timeout: 30_000 });
-    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForLoadState('domcontentloaded').catch(() => {});   // the URL has already changed; a slow sandbox can stall this event
   }
 
   /**

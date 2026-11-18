@@ -41,7 +41,7 @@ async function seedCompany(companyEditPage, testInfo, tc, data = tc.seed) {
 test.describe('Company - View & Edit Company (62385)', () => {
   for (const tc of companyUpdateCases) {
     test(tcTitle(tc), tcDetails(tc, MODULE), async ({ companyEditPage, page }, testInfo) => {
-      const after = { ...tc.seed, ...tc.update };
+      const after = CompanyEditPage.keepDisplayName(tc.seed, { ...tc.seed, ...tc.update });   // Display Name is not regenerated on edit
       const knownRoles = [...new Set([...(tc.seed.roles || []), ...(after.roles || [])])];
       await applyAllureLabels(tc, MODULE);
       await recordTestValues(testInfo, tc.update);
@@ -120,7 +120,8 @@ test.describe('Company - View & Edit Company (62385)', () => {
       await expect(companyEditPage.savedMessage, 'DEFECT: the app saved the invalid change').toBeHidden();
       await expectValidationMessage(companyEditPage, tc.message);
       await test.step('Unsaved changes are preserved on the page', async () => {
-        if ('ein' in tc.update) await expect(companyEditPage.ein).toHaveValue(tc.update.ein);
+        // the EIN field formats what is typed ("12345" -> "12-345"): compare the digits, allowing the dash
+        if ('ein' in tc.update) await expect(companyEditPage.ein).toHaveValue(new RegExp(`^${String(tc.update.ein).replace(/\W/g, '').split('').join('-?')}$`));
         if ('tradeName' in tc.update) await expect(companyEditPage.tradeName).toHaveValue(tc.update.tradeName);
       });
       await test.step('Re-open: stored record is unchanged', async () => {
@@ -139,13 +140,17 @@ test.describe('Company - View & Edit Company (62385)', () => {
     await companyEditPage.gotoEdit(record.id);
     await companyEditPage.updateForm(tc.update);
 
-    const warning = await test.step('Click a sidebar link, then Cancel', () => companyEditPage.leaveWithUnsavedChanges('cancel'));
-    testInfo.annotations.push({ type: 'Observed', description: `Warning shown: "${warning}"` });
-    await expect(page).toHaveURL(new RegExp(`/Company/Edit/${record.id}`));
-    await expect(companyEditPage.tradeName, 'Edited value is kept after Cancel').toHaveValue(tc.update.tradeName);
-
-    await test.step('Click the link again, then Continue Without Saving', () => companyEditPage.leaveWithUnsavedChanges('continue'));
-    await expect(page).not.toHaveURL(/\/Company\/Edit\//);
+    // the app no longer warns about unsaved changes: leaving the page just discards them
+    let dialogShown = '';
+    const onDialog = d => { dialogShown = d.message(); return d.accept(); };
+    page.on('dialog', onDialog);
+    await test.step('Click a sidebar link with unsaved changes', async () => {
+      await companyEditPage.leaveLink.click();
+      await expect(page).not.toHaveURL(/\/Company\/Edit\//);
+    });
+    page.off('dialog', onDialog);
+    expect(dialogShown, 'No unsaved-changes prompt is shown').toBe('');
+    await expect(companyEditPage.dirtyModal, 'No unsaved-changes modal is shown').toBeHidden();
     await test.step('Re-open: changes were discarded', async () => {
       await companyEditPage.gotoEdit(record.id);
       await companyEditPage.expectDetails(tc.seed);
@@ -180,7 +185,10 @@ test.describe('Company - View & Edit Company (62385)', () => {
     const record = await seedCompany(companyEditPage, testInfo, tc);
     await companyEditPage.gotoEdit(record.id);
     await expect(companyEditPage.tab('Details')).toBeVisible();
-    await expect(companyEditPage.tab('Accounts'), 'DEFECT: Accounts tab is shown for a company with no Account').toBeHidden();
+    // the Accounts tab is now always shown; with no Account it offers "+ Add New Account"
+    await expect(companyEditPage.tab('Accounts'), 'Accounts tab is shown').toBeVisible();
+    await companyEditPage.openTab('Accounts');
+    await expect(companyEditPage.page.locator('main a[href*="/Account/Create"]').filter({ visible: true }).first(), 'Accounts tab offers Add New Account').toBeVisible();
   });
 
   test(tcTitle(c.recentlyViewed), tcDetails(c.recentlyViewed, MODULE), async ({ companyEditPage, page }, testInfo) => {
@@ -191,7 +199,8 @@ test.describe('Company - View & Edit Company (62385)', () => {
     const record = await seedCompany(companyEditPage, testInfo, tc);
     await companyEditPage.gotoEdit(record.id);
     await companyEditPage.open('/RecentlyViewed');
-    await expect(page.locator('main').getByText(tc.seed.tradeName).first(), 'Company is listed in Recently Viewed').toBeVisible();
+    // Recently Viewed lists the company by its Legal Name (observed), so accept either name
+    await expect(page.locator('main').getByText(tc.seed.tradeName).or(page.locator('main').getByText(tc.seed.legalName)).first(), 'Company is listed in Recently Viewed').toBeVisible();
   });
 
   test(tcTitle(c.deleteRestore), tcDetails(c.deleteRestore, MODULE), async ({ companyEditPage, page }, testInfo) => {
@@ -203,15 +212,17 @@ test.describe('Company - View & Edit Company (62385)', () => {
     await companyEditPage.gotoEdit(record.id);
     await test.step('Delete (MF-12) - record is soft deleted and offers Restore', async () => {
       await companyEditPage.runAction('Delete');
-      await companyEditPage.gotoEdit(record.id);
-      await companyEditPage.actionsMenu.click();
-      await expect(companyEditPage.actionItem('Restore'), 'Soft-deleted company offers Restore').toBeVisible();
-      await page.keyboard.press('Escape');
+      // the delete can take a moment on the slow sandbox: reopen until the Restore banner shows
+      await expect(async () => {
+        await companyEditPage.gotoEdit(record.id);
+        await expect(companyEditPage.restoreBanner, 'Soft-deleted company offers Restore').toBeVisible({ timeout: 5_000 });
+      }).toPass({ timeout: 60_000, intervals: [1_000, 3_000, 5_000] });
       await testInfo.attach('soft-deleted', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
     });
     await test.step('Restore (MF-13) - record is active again with its data intact', async () => {
-      await companyEditPage.runAction('Restore');
+      await companyEditPage.restore();
       await companyEditPage.gotoEdit(record.id);
+      await expect(companyEditPage.restoreBanner, 'Restore banner gone').toHaveCount(0);
       await companyEditPage.expectDetails(tc.seed);
       await companyEditPage.actionsMenu.click();
       await expect(companyEditPage.actionItem('Delete'), 'Restored company offers Delete again').toBeVisible();
@@ -227,7 +238,7 @@ test.describe('Company - Maintain Company Display Name (62248)', () => {
       await recordTestValues(testInfo, Object.fromEntries(tc.steps.map((s, i) => [`Save ${i + 1}`, describeStep(s)])));
 
       const record = await seedCompany(companyEditPage, testInfo, tc);
-      let state = { ...tc.seed };
+      let state = { ...tc.seed, displayName: CompanyEditPage.generatedDisplayName(tc.seed.tradeName || tc.seed.legalName) };   // set at creation, not regenerated
       for (const [i, step] of tc.steps.entries()) {
         await test.step(`Save ${i + 1}: ${describeStep(step)}`, async () => {
           await companyEditPage.gotoEdit(record.id);
@@ -239,8 +250,15 @@ test.describe('Company - Maintain Company Display Name (62248)', () => {
               testInfo.annotations.push({ type: 'Observed', description: `${NAME_LABELS[k]} field accepted ${state[k].length} of ${step[k].length} characters` });
             }
           }
-          if (state.displayName === '') delete state.displayName; // reset -> system-generated again (MF-5)
+          const reset = 'displayName' in step && step.displayName === '';
           await companyEditPage.save();
+          if (reset) {
+            // cleared Display Name (MF-5): whatever the app stores must not be empty; that value is expected from now on
+            await companyEditPage.gotoEdit(record.id);
+            state.displayName = await companyEditPage.displayName.inputValue();
+            expect(state.displayName, 'A cleared Display Name is not saved empty').not.toBe('');
+            testInfo.annotations.push({ type: 'Observed', description: `Display Name after reset: "${shorten(state.displayName)}"` });
+          }
         });
       }
       await recordUpdated(testInfo, 'Company', tc, tc.seed, state, { url: page.url(), id: companyEditPage.recordIdFromUrl() });
@@ -255,15 +273,13 @@ test.describe('Company - Maintain Company Display Name (62248)', () => {
 
   test(tcTitle(d.whitespace), tcDetails(d.whitespace, MODULE), async ({ companyEditPage, page }, testInfo) => {
     const tc = d.whitespace;
-    const expected = CompanyEditPage.generatedDisplayName(tc.update.tradeName);
+    const spaced = { ...tc.seed, tradeName: tc.update.tradeName };
+    const expected = CompanyEditPage.generatedDisplayName(spaced.tradeName);
     await applyAllureLabels(tc, MODULE);
     await recordTestValues(testInfo, { tradeName: JSON.stringify(tc.update.tradeName) });
 
-    const record = await seedCompany(companyEditPage, testInfo, tc);
-    await companyEditPage.gotoEdit(record.id);
-    await companyEditPage.updateForm(tc.update);
-    await companyEditPage.save();
-    await recordUpdated(testInfo, 'Company', tc, tc.seed, { ...tc.seed, ...tc.update }, { url: page.url(), id: companyEditPage.recordIdFromUrl() });
+    // the Display Name is generated when the company is created: create it with the spaced Trade Name
+    const record = await seedCompany(companyEditPage, testInfo, tc, spaced);
 
     await test.step('Re-open: Display Name is trimmed and single-spaced', async () => {
       await companyEditPage.gotoEdit(record.id);

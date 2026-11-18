@@ -4,7 +4,7 @@ const { TARGET_TYPES, ALLOWED_BILLING_TYPES, EXCLUDED_BILLING_TYPES, SCENARIOS }
 const { num } = require('../pages/ratecard/RateCardPage');
 const { recordTestValues, recordCreated, tcDetails, tcTitle } = require('../utils/testCase');
 const {
-  observe, shot, squash, openCard, dated, busyTargets, fillNewRate, addRate, linesOn, expectOnRatesTab, lineValues,
+  observe, shot, squash, openCard, dated, rangeDays, busyTargets, fillNewRate, addRate, linesOn, expectOnRatesTab, lineValues,
   expectScenario, months,
 } = require('../utils/rateCardFlow');
 
@@ -51,8 +51,8 @@ async function expectListed(rc, testInfo, card, used, rate = used.rate) {
  * targets for one that offers it. For Subscription also picks an Interval and a Term divisible by it.
  * Returns the values used (editor still open), or null when no target offers the billing type.
  */
-async function fillWithBillingType(rc, data) {
-  const avoid = await busyTargets(rc, data.effectiveStart, data.effectiveEnd);
+async function fillWithBillingType(rc, data, skip = []) {
+  const avoid = [...await busyTargets(rc, ...rangeDays(data.effectiveStart, data.effectiveEnd)), ...skip];
   await rc.openAddRate();
   const types = data.targetType ? [data.targetType] : await rc.options('targetType');
   for (const type of types) {
@@ -93,6 +93,7 @@ async function expectNotSaved(rc, testInfo) {
 }
 
 test.describe('Rate Card - Add Rate (63150 MF-4)', () => {
+  test.beforeEach(() => { test.slow(); });   // picking a free target and saving a rate on the sandbox is slow
   // ---------- the rate editor ----------
   test(tcTitle(c.addRateButton), tcDetails(c.addRateButton, MODULE), async ({ rateCardPage, page }, testInfo) => {
     const card = await openCard(rateCardPage, testInfo, c.addRateButton, MODULE);
@@ -118,7 +119,8 @@ test.describe('Rate Card - Add Rate (63150 MF-4)', () => {
     await rateCardPage.openAddRate();
     const options = await rateCardPage.options('targetType');
     await recordTestValues(testInfo, { 'Target Types offered': options });
-    expect([...options].sort(), 'Target Types').toEqual([...TARGET_TYPES].sort());
+    const plain = list => list.map(t => t.replace(/\s+/g, '')).sort();   // the app prints "ServiceItem"
+    expect(plain(options), 'Target Types').toEqual(plain(TARGET_TYPES));
   });
 
   test(tcTitle(c.targetsByType), tcDetails(c.targetsByType, MODULE), async ({ rateCardPage }, testInfo) => {
@@ -187,6 +189,7 @@ test.describe('Rate Card - Add Rate (63150 MF-4)', () => {
     const target = await rateCardPage.choose('target');
     test.skip(!target, 'No available Labor Grade');
     await rateCardPage.choose('targetType', 'Service Item');
+    await expect.poll(() => rateCardPage.value('target'), { timeout: 5_000 }).not.toBe(target).catch(() => {});   // the Target list reloads for the new type
     const after = await rateCardPage.value('target');
     await recordTestValues(testInfo, { 'Target before': target, 'Target Type changed to': 'Service Item', 'Target after': after || '(empty)' });
     expect(after, 'DEFECT: the Labor Grade target was kept after changing the Target Type').not.toBe(target);
@@ -237,11 +240,23 @@ test.describe('Rate Card - Add Rate (63150 MF-4)', () => {
   for (const tc of [c.fixedPrice, c.fee, c.timeMaterial, c.subscription]) {
     test(tcTitle(tc), tcDetails(tc, MODULE), async ({ rateCardPage }, testInfo) => {
       const card = await openCard(rateCardPage, testInfo, tc, MODULE);
-      const used = await test.step(`Add Rate with Billing Type ${tc.data.billingType}`, () => fillWithBillingType(rateCardPage, dated(tc.data, card.today)));
-      test.skip(!used, `No free ${tc.data.targetType || ''} target offers ${tc.data.billingType}`);
+      // the Billing Type list offers types a target may not allow ("can't be sold as ..."): try the next target then
+      const skip = [];
+      let used;
+      let saved = false;
+      for (let attempt = 0; attempt < 12 && !saved; attempt++) {
+        used = await test.step(`Add Rate with Billing Type ${tc.data.billingType}`, () => fillWithBillingType(rateCardPage, dated(tc.data, card.today), skip));
+        test.skip(!used, `No free ${tc.data.targetType || ''} target accepts ${tc.data.billingType}`);
+        ({ saved } = await rateCardPage.saveLine());
+        if (saved) break;
+        const shown = (await rateCardPage.anyError.isVisible()) ? squash(await rateCardPage.anyError.innerText()) : '';
+        expect(shown, `Rate saved (${shown || 'editor stayed open'})`).toMatch(/can't be sold as|isn't available on|has overlapping rates|Subscription (Term|Interval) is required/i);
+        skip.push(used.target);
+        if (await rateCardPage.scenarioModal.isVisible()) await rateCardPage.scenarioPrimary.click();
+        if (await rateCardPage.drawer.isVisible()) await rateCardPage.closeDrawer(true);
+      }
+      test.skip(!saved, `No free target accepts ${tc.data.billingType} (tried: ${skip.join(', ')})`);
       await recordTestValues(testInfo, lineValues(card, used));
-      const { saved } = await rateCardPage.saveLine();
-      expect(saved, `Rate saved (${(await rateCardPage.anyError.isVisible()) ? squash(await rateCardPage.anyError.innerText()) : 'editor stayed open'})`).toBe(true);
       await recordCreated(testInfo, MODULE, tc, lineValues(card, used), card);
       await expectListed(rateCardPage, testInfo, card, used);
     });
@@ -250,6 +265,7 @@ test.describe('Rate Card - Add Rate (63150 MF-4)', () => {
   // ---------- rate values and dates ----------
   for (const tc of [c.zeroRate, c.decimalRate, c.largeRate, c.backdated]) {
     test(tcTitle(tc), tcDetails(tc, MODULE), async ({ rateCardPage }, testInfo) => {
+      test.slow();   // finding a target free for the whole period loads the rates grid for several days
       const card = await openCard(rateCardPage, testInfo, tc, MODULE);
       const used = await addAndSave(rateCardPage, testInfo, tc, card);
       await expectListed(rateCardPage, testInfo, card, used);
@@ -394,9 +410,10 @@ test.describe('Rate Card - Add Rate (63150 MF-4)', () => {
     const data = dated(tc.data, card.today);
     const used = await fillNewRate(rateCardPage, { ...data, rate: undefined });
     const rateField = await rateCardPage.field('rate');
+    const initial = await rateField.inputValue();   // the numeric Rate field starts at 0.00
     await rateField.click();
     await rateField.pressSequentially(data.rate);
-    const kept = await rateField.inputValue();
+    const kept = (await rateField.inputValue()) === initial ? '' : await rateField.inputValue();
     await recordTestValues(testInfo, { ...used, 'Typed into Rate': data.rate, 'Rate field holds': kept || '(empty)' });
     if (!kept) {
       observe(testInfo, 'The Rate field ignores letters');

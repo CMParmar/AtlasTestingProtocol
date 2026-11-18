@@ -5,7 +5,7 @@ const {
 } = require('../testData/projectUpdateData');
 const { ProjectEditPage } = require('../pages/project/projectEditPage');
 const { resolveProjectAccount } = require('../utils/projectAccount');
-const { tcDetails, tcTitle, applyAllureLabels, recordTestValues, recordUpdated, recordUrl } = require('../utils/testCase');
+const { tcDetails, tcTitle, applyAllureLabels, knownDefect, recordTestValues, recordUpdated, recordUrl } = require('../utils/testCase');
 
 /**
  * Use case 61967 - View & Edit Project (/Project/Edit/{id}).
@@ -160,8 +160,10 @@ test.describe('Project - View & Edit Project (61967)', () => {
     });
     const link = projectPage.accountProjectsTab.locator(`a[href*="/Project/"][href$="/${project.id}"]`)
       .or(projectPage.accountProjectsTab.getByRole('link', { name: tc.seed.projectName })).first();
-    const [popup] = await Promise.all([page.context().waitForEvent('page', { timeout: 5_000 }).catch(() => null), link.click()]);
+    await expect(link, 'Project listed on the Account Projects tab').toBeVisible({ timeout: 30_000 });
+    const [popup] = await Promise.all([page.context().waitForEvent('page', { timeout: 10_000 }).catch(() => null), link.click({ noWaitAfter: true })]);
     if (popup) await popup.waitForLoadState('domcontentloaded');
+    else await page.waitForURL(/\/Project\/Edit\//i, { timeout: 60_000 }).catch(() => {});   // same-tab open on a slow sandbox
     const target = popup ? new ProjectEditPage(popup) : projectEditPage;
     await target.expectEditOpen();
     await expect(target.page).toHaveURL(new RegExp(`/Project/Edit/${project.id}(?:[/?#]|$)`));
@@ -338,6 +340,7 @@ test.describe('Project - View & Edit Project (61967)', () => {
 
   test(tcTitle(c.terminalCreation), tcDetails(c.terminalCreation, MODULE), async ({ projectPage, projectEditPage, page }, testInfo) => {
     const tc = c.terminalCreation;
+    knownDefect(testInfo, tc);   // confirmed app defect: expected to fail until it is fixed
     const project = await seedProject({ projectPage, projectEditPage }, testInfo, tc);
     await recordTestValues(testInfo, { projectStatus: tc.close, 'Checked': 'Add Deliverable, Clock In' });
     await closeProject(projectEditPage, testInfo, tc, project);
@@ -350,6 +353,7 @@ test.describe('Project - View & Edit Project (61967)', () => {
 
   test(tcTitle(c.terminalStaffing), tcDetails(c.terminalStaffing, MODULE), async ({ projectPage, projectEditPage, page }, testInfo) => {
     const tc = c.terminalStaffing;
+    knownDefect(testInfo, tc);   // confirmed app defect: expected to fail until it is fixed
     const project = await seedProject({ projectPage, projectEditPage }, testInfo, tc);
     await recordTestValues(testInfo, { projectStatus: tc.close });
     await closeProject(projectEditPage, testInfo, tc, project);

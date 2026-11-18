@@ -12,6 +12,7 @@ test.describe('Create Task', () => {
   test.beforeEach(async ({ taskPage }) => {
     await taskPage.navigateToTaskPage();
     await expect(taskPage.addTaskButton).toBeVisible();
+    await taskPage.clearSavedFilters();
     await taskPage.openCreateTaskDrawer();
     await expect(taskPage.drawerHeading).toBeVisible();
   });

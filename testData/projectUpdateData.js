@@ -35,7 +35,7 @@ const seed = (no, label, extra = {}) => ({
   projectName: `${kw} Edit ${label} Project ${tag}`,
   details: {
     projectCode: `PE${no}-${digits}`, description: `${kw} project seeded for View & Edit tests ${tag}`,
-    billingType: 'Hourly', estimatedHours: '40', scheduledStart: '2026-11-02', dueDate: '2026-12-18',
+    billingType: 'Time & Material', estimatedHours: '40', scheduledStart: '2026-11-02', dueDate: '2026-12-18',
   },
   ...extra,
 });
@@ -56,9 +56,9 @@ const projectUpdateCases = [
     label: 'Billing', severity: 'normal',
     name: 'Update Primary Billing Type and Estimated Hours',
     description: 'Verify Primary Billing Type and Estimated Hours can be changed on an active project (MF-2, MF-7).',
-    condition: 'Active project with Billing Type Hourly and 40 Estimated Hours.',
-    expected: 'Save succeeds; the project shows Fixed Fee and 85.5 Estimated Hours.',
-    update: { billingType: 'Fixed Fee', estimatedHours: '85.5' },
+    condition: 'Active project with Billing Type Time & Material and 40 Estimated Hours.',
+    expected: 'Save succeeds; the project shows Fixed Price and 85.5 Estimated Hours.',
+    update: { billingType: 'Fixed Price', estimatedHours: '85.5' },
   }),
   tc(10, {
     label: 'Schedule', severity: 'normal',
@@ -275,6 +275,7 @@ const projectUpdateExtraCases = {
     condition: 'Completed project; Deliverables tab opened.',
     expected: '"Add Deliverable" and "Clock In" are not offered.',
     close: 'Completed',
+    defect: 'A Completed project still offers Clock In (new time entry) on the Deliverables tab (Add Deliverable is correctly hidden).',
   }),
   terminalStaffing: tc(24, {
     label: 'Terminal Staff', severity: 'normal',
@@ -283,6 +284,7 @@ const projectUpdateExtraCases = {
     condition: 'Completed project; Staffing tab opened.',
     expected: 'No enabled "add staff" action is shown.',
     close: 'Completed',
+    defect: 'A Completed project still lets staff be added on the Staffing tab (add-staff actions remain enabled).',
   }),
   terminalAnnotations: tc(25, {
     label: 'Terminal Notes', severity: 'normal',

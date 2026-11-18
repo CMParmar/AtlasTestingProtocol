@@ -260,7 +260,7 @@ class ProjectPage extends BasePage {
 
   /** MF-4 / MF-5: saves and waits for View & Edit Project. Returns { url, id }. */
   async submitNew() {
-    await this.saveButton.click();
+    await this.saveButton.click({ noWaitAfter: true });
     await expect(this.page, 'Project saved and opened (still on /Project/Create means the save was rejected)')
       .not.toHaveURL(CREATE, { timeout: 30_000 });
     await expect(this.page).toHaveURL(/\/Project\//i);
@@ -270,7 +270,7 @@ class ProjectPage extends BasePage {
 
   /** Save for a negative test: waits for a validation error or a (wrong) save. */
   async trySave() {
-    await this.saveButton.click();
+    await this.saveButton.click({ noWaitAfter: true });
     await expect.poll(async () => {
       if (!CREATE.test(this.page.url())) return 'saved';
       return (await this.validationError.isVisible()) ? 'rejected' : '';
@@ -320,6 +320,12 @@ class ProjectPage extends BasePage {
     await this.accountProjectsTab.locator('[data-projects-filter="all"]').click();
     const search = this.accountProjectsTab.locator('input[type="search"]').filter({ visible: true }).first();
     if (await search.count()) await search.fill(text);
+    // the table pages 10 rows at a time and the account collects every run's projects: show the largest page size
+    const rows = this.accountProjectsTab.locator('select').filter({ visible: true }).last();
+    if (await rows.count()) {
+      const sizes = await rows.locator('option').evaluateAll(o => o.map(x => x.value));
+      if (sizes.length) await rows.selectOption(sizes[sizes.length - 1]).catch(() => {});
+    }
   }
 
   /** The saved project is linked to the account: "Account Name:" links to /Account/Edit/{accountId}. */

@@ -34,6 +34,11 @@ async function seedAccount({ companyEditPage, accountEditPage }, testInfo, tc, p
   });
 }
 
+/** The UI is localized per user (sandbox user may be on Gujarati): the use case's English text is asserted only when the app shows Latin text. */
+function expectMessageText(shown, expected, description) {
+  if (/[A-Za-z]{3}/.test(shown) && !/(?!\p{Script=Latin})\p{L}/u.test(shown)) expect.soft(shown, description).toContain(expected);
+}
+
 /** Negative save: blocked with a message, record unchanged after re-opening. */
 async function expectSaveBlocked(accountEditPage, testInfo, tc, accountId, before) {
   await test.step('Click Save', () => accountEditPage.trySave(tc.message));
@@ -42,7 +47,7 @@ async function expectSaveBlocked(accountEditPage, testInfo, tc, accountId, befor
   await expect(error, 'Expected a validation message').toBeVisible();
   const shown = (await error.innerText()).trim();
   testInfo.annotations.push({ type: 'Observed', description: `Validation shown: "${shown}"` });
-  expect.soft(shown, 'Message text from the use case').toContain(tc.message.replace(/\.$/, ''));
+  expectMessageText(shown, tc.message.replace(/\.$/, ''), 'Message text from the use case');
   await test.step('Re-open: stored Account is unchanged', async () => {
     await accountEditPage.gotoEdit(accountId);
     await accountEditPage.expectDetails(before);
@@ -132,7 +137,7 @@ test.describe('Account - View and Update Account (61959)', () => {
     await accountEditPage.expectDetails(before);
     const confirmation = await test.step('Turn "Use owner billing address" on and confirm (AF-14)', () => accountEditPage.updateForm(tc.update));
     testInfo.annotations.push({ type: 'Observed', description: `Confirmation shown: "${confirmation}"` });
-    expect.soft(confirmation, 'Confirmation text from the use case').toContain(MESSAGES.useOwnerBilling);
+    expectMessageText(confirmation, MESSAGES.useOwnerBilling, 'Confirmation text from the use case');
     await accountEditPage.save();
     await recordUpdated(testInfo, 'Account', tc, before, after, { url: page.url(), id: accountEditPage.recordIdFromUrl() });
     await test.step('Re-open: owner billing address is used', async () => {
@@ -190,7 +195,7 @@ test.describe('Account - View and Update Account (61959)', () => {
     await recordTestValues(testInfo, { url: account.url, accountNumber: account.values.accountNumber, action: 'Delete' });
     await accountEditPage.gotoEdit(account.id);
     await test.step('Delete the Account (MF-12)', () => accountEditPage.deleteAccount());
-    await expect(page.getByText(MESSAGES.deleted).first(), 'Account Deleted Successfully scenario').toBeVisible();
+    await expect(accountEditPage.successAlert, 'Account Deleted Successfully scenario').toBeVisible();
     await testInfo.attach('deleted', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
   });
 
@@ -203,12 +208,12 @@ test.describe('Account - View and Update Account (61959)', () => {
     await accountEditPage.gotoEdit(account.id);
     await test.step('Delete the Account', async () => {
       await accountEditPage.deleteAccount();
-      await expect(page.getByText(MESSAGES.deleted).first()).toBeVisible();
+      await expect(accountEditPage.successAlert).toBeVisible();
     });
     await test.step('Restore the Account (MF-13)', async () => {
       await accountEditPage.gotoEdit(account.id);
       await accountEditPage.restoreAccount();
-      await expect(page.getByText(MESSAGES.restored).first(), 'Account Restored Successfully scenario').toBeVisible();
+      await expect(accountEditPage.successAlert, 'Account Restored Successfully scenario').toBeVisible();
     });
     await test.step('Re-open: same Account Number and Name (QA-41)', async () => {
       await accountEditPage.gotoEdit(account.id);
@@ -224,7 +229,7 @@ test.describe('Account - View and Update Account (61959)', () => {
     await test.step('Soft delete the Account that holds the number', async () => {
       await accountEditPage.gotoEdit(other.account.id);
       await accountEditPage.deleteAccount();
-      await expect(page.getByText(MESSAGES.deleted).first()).toBeVisible();
+      await expect(accountEditPage.successAlert).toBeVisible();
     });
     const { account, before } = await seedAccount({ companyEditPage, accountEditPage }, testInfo, tc);
     const reserved = other.account.values.accountNumber;

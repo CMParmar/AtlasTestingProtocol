@@ -25,23 +25,25 @@ class AccountPage extends BasePage {
     this.paymentTerm = page.locator('#PaymentTermIDF');
     this.billingType = page.locator('#DefaultBillingTypeIDF');
     this.accountingCustomerKey = page.locator('#AccountingCustomerKey');
-    this.saveButton = page.locator('#form-account').getByRole('button', { name: 'Save', exact: true });
+    this.saveButton = page.locator('#form-account').locator('button[type="submit"]').first();   // located by type, never by caption (the UI may be localized, e.g. Gujarati)
     // billing address
     this.useParentBilling = page.locator('#UseParentBillingAddress');
     this.useParentBillingSwitch = page.locator('label.status-switch').filter({ has: this.useParentBilling });
     this.parentAddressPreview = page.locator('#account-parent-address-preview');
     this.ownAddress = page.locator('#account-address-host');
     this.editOwnAddressButton = this.ownAddress.locator('.edit-address-btn').first();
-    this.ownerBillingUnavailable = page.getByText('The account owner does not yet have a billing address');
-    this.goBackButton = page.getByRole('button', { name: 'Go back', exact: true });
+    // "The account owner does not yet have a billing address..." dialog; located by role, never by caption (localized per user)
+    this.ownerBillingUnavailable = page.getByRole('dialog').filter({ visible: true }).first();
+    this.goBackButton = this.ownerBillingUnavailable.getByRole('button');
     // parent page (Person / Company)
     this.actionsButton = page.locator('#actionsDropdown');
-    this.addNewAccountAction = page.locator('.dropdown-menu.show').getByText('Add New Account');
+    this.addNewAccountAction = page.locator('.dropdown-menu.show a[href*="/Account/Create"]')   // captions are localized per user: by href ...
+      .or(page.locator('.dropdown-menu.show a.dropdown-item[href="#"]:not(.text-danger)'));   // ... or, once the parent has Accounts, the "#" item that opens the advisory (Delete is .text-danger)
     this.advisory = page.locator('#divExistingAccountAdvisory');
     this.accountsTab = page.locator('.person-accounts-tab');
     this.accountRows = page.locator('#accounts-table tbody tr');
     this.validationError = page.locator('.field-validation-error, .text-danger, .invalid-feedback, .validation-summary-errors, .alert-danger')
-      .filter({ visible: true, hasText: /[A-Za-z]{3}/ }).first();
+      .filter({ visible: true, hasText: /[\p{L}\p{M}]{3}/u }).first();   // any script (the UI may be localized)
   }
 
   static createPath(parentType, parentId) {
@@ -53,15 +55,27 @@ class AccountPage extends BasePage {
    * @returns {Promise<boolean>} true when the Existing Account Advisory was shown instead of the form
    */
   async startFromParent() {
-    await this.actionsButton.click();
-    await this.addNewAccountAction.click();
+    // the Actions menu can be toggled shut by a late re-render: reopen it until the item shows
+    let inMenu = false;
+    for (let attempt = 0; attempt < 2 && !inMenu; attempt++) {
+      await this.actionsButton.click();
+      inMenu = await this.addNewAccountAction.waitFor({ state: 'visible', timeout: 5_000 }).then(() => true, () => false);
+    }
+    if (inMenu) {
+      await this.addNewAccountAction.click();
+    } else {
+      // a Person's Actions menu no longer offers it (only Grant Access): use "Add New Account" on the Accounts tab
+      await this.page.keyboard.press('Escape');
+      await this.page.locator('main #tab-accounts-btn, main button.nav-link[data-bs-target="#pane-newacct"]').filter({ visible: true }).first().click();
+      await this.page.locator('main a[href*="/Account/Create"]').filter({ visible: true }).first().click();
+    }
     await expect(this.accountNumber.or(this.advisory)).toBeVisible({ timeout: 30_000 });
     return this.advisory.isVisible();
   }
 
   /** MF-2 -> MF-3: continue from the advisory with the Accounts tab's "Add New Account" button. */
   async continueAfterAdvisory() {
-    await this.accountsTab.getByRole('link', { name: /Add New Account/ }).first().click();
+    await this.accountsTab.locator('a[href*="/Account/Create"]').first().click();
     await this.expectFormOpen();
   }
 
@@ -169,7 +183,7 @@ class AccountPage extends BasePage {
     await expect(this.page, 'Account saved and opened (still on /Account/Create means the save was rejected)')
       .not.toHaveURL(/\/Account\/Create/i, { timeout: 30_000 });
     await expect(this.page).toHaveURL(/\/Account\//i);
-    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForLoadState('domcontentloaded').catch(() => {});   // the URL has already changed; a slow sandbox can stall this event
     return { url: this.page.url(), id: this.recordIdFromUrl() };
   }
 

@@ -52,6 +52,7 @@ const companyNegativeCases = {
     description: 'Verify a US company address with ZIP "ABC12" is rejected.',
     condition: 'User is logged in; Add Company form open; State = Illinois; ZIP = ABC12.',
     expected: 'A validation error is shown for the ZIP and the address is not added.',
+    defect: 'The Address drawer does no ZIP format validation: "ABC12" is accepted for Illinois and the address is added to the company.',
     data: {
       tradeName: `${kw} Invalid ZIP ${tag}`,
       address: { type: 'Billing', recipientName: `${kw} Accounts Payable`, address1: '77 Invalid Zip Plaza', city: 'Chicago', state: 'Illinois', postalCode: 'ABC12' },

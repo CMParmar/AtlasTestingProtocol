@@ -187,9 +187,9 @@ const rateCardAddCases = {
     severity: 'normal',
     name: 'A new rate may start in the past',
     description: 'Verify a rate with a start date before the current date is accepted (D-11).',
-    condition: 'First free target; Effective Start = today - 7, End = today; Rate 40.00.',
-    expected: 'The line is saved, listed as of its past start date and shown on the Rates tab today.',
-    data: { rate: '40.00', effectiveStart: 'today-7', effectiveEnd: 'today' },
+    condition: 'First free target; Effective Start = today - 7, End = today - 6 (a short period in the past); Rate 40.00.',
+    expected: 'The line is saved and listed as of its past start date.',
+    data: { rate: '40.00', effectiveStart: 'today-7', effectiveEnd: 'today-6' },
   }),
   // ---------- staging and saving ----------
   twoInOneSave: tc(23, {

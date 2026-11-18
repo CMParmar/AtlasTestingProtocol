@@ -12,7 +12,7 @@ class PersonPage extends BasePage {
     this.lastName = page.locator('#LastName');
     this.handle = page.locator('#Handle');
     this.email = page.locator('#PrimaryEmail');
-    this.addPersonButton = page.getByRole('button', { name: 'Add Person' });
+    this.addPersonButton = page.locator('main button[type="submit"].btn-primary').first();   // by type: the caption is localized per user
     this.cancelButton = page.getByRole('button', { name: 'Cancel' }).or(page.getByRole('link', { name: 'Cancel' }));
     this.phoneDrawer = new PhoneDrawer(page);
     this.addressDrawer = new AddressDrawer(page);
@@ -41,9 +41,9 @@ class PersonPage extends BasePage {
   }
 
   async submit() {
-    await this.addPersonButton.click();
+    await this.addPersonButton.click({ noWaitAfter: true });   // the post-back can be slow: the URL check below waits for it
     await expect(this.page).not.toHaveURL(/\/Person\/Create/, { timeout: 30_000 });
-    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForLoadState('domcontentloaded').catch(() => {});   // the URL has already changed; a slow sandbox can stall this event
   }
 
   /**

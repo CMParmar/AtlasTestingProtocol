@@ -90,7 +90,7 @@ class ProjectEditPage extends ProjectPage {
   async save() {
     await Promise.all([
       this.page.waitForResponse(isEditPost, { timeout: 30_000 }),
-      this.saveButton.click(),
+      this.saveButton.click({ noWaitAfter: true }),
     ]);
     await this.page.waitForLoadState('domcontentloaded');
     await expect(this.validationErrors, 'Save rejected with a validation error').toHaveCount(0);
@@ -104,7 +104,7 @@ class ProjectEditPage extends ProjectPage {
     const onResponse = r => { if (isEditPost(r)) posted = true; };
     this.page.on('response', onResponse);
     try {
-      await this.saveButton.click();
+      await this.saveButton.click({ noWaitAfter: true });
       await expect.poll(async () => ((await this.validationError.isVisible()) ? 'rejected' : posted ? 'posted' : ''),
         { timeout: 30_000 }).not.toBe('');
       if (posted) await this.page.waitForLoadState('domcontentloaded');

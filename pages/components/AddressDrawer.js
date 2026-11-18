@@ -6,7 +6,7 @@ class AddressDrawer {
   /** @param {import('@playwright/test').Page} page */
   constructor(page) {
     this.page = page;
-    this.openButton = page.getByRole('button', { name: /Add Address/ });
+    this.openButton = page.locator('button.jqAddAddressButton').filter({ visible: true }).first();   // by class: the caption is localized per user
     const f = name => page.locator(`#slideout_Addresses___INDEX____${name}`);
     this.recipientName = f('recipientName');
     this.address1 = f('address1');
@@ -18,7 +18,9 @@ class AddressDrawer {
   }
 
   typeButton(type) {
-    return this.page.locator('.address-type-btn').filter({ hasText: type, visible: true });
+    // by data-address-type (1 Billing, 2 Mailing, 3 Shipping): the captions are localized per user
+    const id = { billing: 1, mailing: 2, shipping: 3 }[String(type).toLowerCase()];
+    return this.page.locator(`.address-type-btn[data-address-type="${id}"]`).filter({ visible: true });
   }
 
   /** Street line as shown on the main form once the address is accepted. */
@@ -28,7 +30,11 @@ class AddressDrawer {
 
   /** Opens the drawer, fills whatever is provided and clicks Continue - no assertion on the outcome. */
   async fillAndContinue(address) {
-    await this.openButton.click();
+    // the first click is sometimes swallowed while the form is still initialising: click again if the drawer did not open
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await this.openButton.click();
+      if (await this.recipientName.waitFor({ state: 'visible', timeout: 10_000 }).then(() => true, () => false)) break;
+    }
     await expect(this.recipientName).toBeVisible();
     if (address.type) await this.typeButton(address.type).click();
     if (address.recipientName) await this.recipientName.fill(address.recipientName);

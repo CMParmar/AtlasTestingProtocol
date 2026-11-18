@@ -9,7 +9,7 @@ class PhoneDrawer {
   constructor(page) {
     this.page = page;
     // on a saved record that already has a phone the button reads "+ Add another phone number"
-    this.openButton = page.getByRole('button', { name: /^\+ Add (Phone Number|another phone number)$/i });
+    this.openButton = page.locator('button.add-phone-btn').filter({ visible: true }).first();   // by class: the caption is localized per user
     this.numberInput = page.locator('#slideout_new_phone_numberRaw');
     this.continueButton = page.locator('#slideout_new_phone_continue_btn');
   }
@@ -26,8 +26,11 @@ class PhoneDrawer {
 
   /** Opens the drawer, fills it and clicks Continue - no assertion on the outcome. */
   async fillAndContinue(phone) {
-    await this.openButton.click();
-    await expect(this.numberInput).toBeVisible();
+    // the click can land before the page script binds the handler: retry until the drawer is open
+    await expect(async () => {
+      if (!(await this.numberInput.isVisible())) await this.openButton.click();
+      await expect(this.numberInput).toBeVisible({ timeout: 2_000 });
+    }).toPass({ timeout: 20_000 });
     await this.numberInput.fill(phone.number);
     await this.typeOption(phone.type || 'Mobile').click();
     await clickContinue(this.continueButton);

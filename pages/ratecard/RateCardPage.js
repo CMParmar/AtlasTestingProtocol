@@ -242,12 +242,35 @@ class RateCardPage extends BasePage {
   async choose(name, text, index = 0, avoid = []) {
     const control = await this.field(name);
     await expect(control, `${name} field`).toBeVisible();
-    const offered = await this.options(name, { wait: name === 'target' });
-    const wanted = String(text || '').toLowerCase();
-    const pick = text ? offered.find(o => o.toLowerCase() === wanted) || offered.find(o => o.toLowerCase().includes(wanted))
-      : offered.filter(o => !avoid.includes(o))[index];
-    if (!pick) return '';
-    await control.selectOption({ label: pick });
+    const squash = t => String(t || '').toLowerCase().replace(/\s+/g, '');   // the app labels the type "ServiceItem"
+    const wanted = squash(text);
+    let pick = '';
+    // The Target list is loaded asynchronously and reloaded when Target Type changes: pick from a settled list and
+    // check the selection stuck (a reload in between clears it -> "Target is required"), retrying a few times.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      let offered = await this.options(name, { wait: name === 'target' });
+      if (name === 'target' || name === 'targetType') {
+        for (let i = 0; i < 6; i++) {
+          await this.page.waitForTimeout(400);
+          const again = await this.options(name, { wait: false });
+          if (again.join('|') === offered.join('|')) break;
+          offered = again;
+        }
+      }
+      pick = text ? offered.find(o => squash(o) === wanted) || offered.find(o => squash(o).includes(wanted))
+        : offered.filter(o => !avoid.includes(o))[index];
+      if (!pick) return '';
+      try {
+        await control.selectOption({ label: pick }, { timeout: 5_000 });
+      } catch (e) {
+        if (attempt === 4) throw e;
+        continue;
+      }
+      if (name !== 'target' && name !== 'targetType') break;
+      await this.page.waitForTimeout(400);
+      if ((await this.value(name)) === pick) break;
+      if (attempt === 4) return '';
+    }
     if (name === 'targetType') {
       // the Target list is reloaded for the new type
       await expect.poll(async () => (await this.field('target')).evaluate(s => s.options.length), { timeout: 10_000 }).toBeGreaterThan(0).catch(() => {});
@@ -277,9 +300,26 @@ class RateCardPage extends BasePage {
     }
     if (data.targetType || data.billingType) {
       const preferred = data.billingType || (/Labor|Person/.test(data.targetType || '') ? 'Time' : '');
-      used.billingType = (preferred && await this.choose('billingType', preferred)) || await this.choose('billingType');
+      // billing types the app already refused for this target ("can't be sold as ...") are skipped
+      const refused = (data.skipBilling || []).filter(k => k.startsWith(`${used.target}|`)).map(k => k.slice(used.target.length + 1));
+      const usable = (await this.options('billingType', { wait: true })).filter(o => !refused.includes(o)).sort((a, b) => /Subscription/i.test(a) - /Subscription/i.test(b));   // Subscription (needs a Term and Interval) last
+      const want = preferred && usable.find(o => o.toLowerCase().includes(preferred.toLowerCase()));
+      const billing = want || (data.billingType ? '' : usable[0]);
+      used.billingType = billing ? await this.choose('billingType', billing) : '';
     }
     if (data.targetType || data.unitOfMeasure) used.unitOfMeasure = await this.choose('unitOfMeasure', data.unitOfMeasure);
+    if (/Subscription/i.test(used.billingType || '') && !data.subscriptionInterval && !data.subscriptionTerm) {
+      // any Interval with a Term that is a multiple of it (BR-13)
+      const m = t => { const n = Number((t.match(/\d+/) || [1])[0]); const s = t.toLowerCase(); return /year|annual/.test(s) ? (/\d/.test(s) ? n * 12 : 12) : /semi|half/.test(s) ? 6 : /quarter/.test(s) ? (/\d/.test(s) ? n * 3 : 3) : /month/.test(s) ? n : 0; };
+      const intervals = await this.options('subscriptionInterval', { wait: true });
+      const terms = await this.options('subscriptionTerm', { wait: true });
+      let pair;
+      for (const iv of intervals) for (const t of terms) if (!pair && m(iv) && m(t) && m(t) % m(iv) === 0) pair = [iv, t];
+      if (pair) {
+        used.subscriptionInterval = await this.choose('subscriptionInterval', pair[0]);
+        used.subscriptionTerm = await this.choose('subscriptionTerm', pair[1]);
+      }
+    }
     if (data.subscriptionInterval) used.subscriptionInterval = await this.choose('subscriptionInterval', data.subscriptionInterval);
     if (data.subscriptionTerm) used.subscriptionTerm = await this.choose('subscriptionTerm', data.subscriptionTerm);
     for (const key of ['rate', 'effectiveStart', 'effectiveEnd']) {
