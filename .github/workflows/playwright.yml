@@ -1,7 +1,7 @@
 name: Atlas Testing Protocol
 on:
   workflow_dispatch:
-  inputs:
+    inputs:
       tests:
         description: 'Spec files or folders to run (space-separated, e.g. tests/person.spec.js tests/company.spec.js). Leave empty for all.'
         required: false
@@ -28,8 +28,10 @@ jobs:
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
     - name: Run Playwright tests
-      run: npx playwright test ${{ inputs.tests }} ${{ inputs.grep && format('--grep "{0}"', inputs.grep) || '' }} --workers=1
+      run: npx playwright test $TESTS ${GREP:+--grep "$GREP"} --workers=1
       env:
+        TESTS: ${{ inputs.tests }}
+        GREP: ${{ inputs.grep }}
         BASE_URL: ${{ secrets.BASE_URL }}
         USER_EMAIL: ${{ secrets.USER_EMAIL }}
         USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
