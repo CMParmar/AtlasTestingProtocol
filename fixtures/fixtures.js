@@ -17,6 +17,9 @@ const { PersonSearchPage } = require('../pages/search/personSearchPage');
 const { SearchResultsConfigPage } = require('../pages/search/searchResultsConfigPage');
 const { BaseSearchPage } = require('../pages/search/baseSearchPage');
 const { AdvancedSearchPage } = require('../pages/search/advancedSearchPage');
+const { QuickSearchPage } = require('../pages/search/quickSearchPage');
+const { CompanySearchPage } = require('../pages/search/companySearchPage');
+const { AccountSearchPage } = require('../pages/search/accountSearchPage');
 const { RateCardPage } = require('../pages/ratecard/RateCardPage');
 const { BundlePage } = require('../pages/bundle/BundlePage');
 const { DocumentPage } = require('../pages/document/documentPage');
@@ -54,6 +57,12 @@ const test = base.test.extend({
   baseSearchPage: async ({ page }, use) => use(new BaseSearchPage(page)),
   // Advanced Search Criteria Capture (62200)
   advancedSearchPage: async ({ page }, use) => use(new AdvancedSearchPage(page)),
+  // Execute Quick Search (62466)
+  quickSearchPage: async ({ page }, use) => use(new QuickSearchPage(page)),
+  // Company Search criteria (62418)
+  companySearchPage: async ({ page }, use) => use(new CompanySearchPage(page)),
+  // Account Search specification (62828)
+  accountSearchPage: async ({ page }, use) => use(new AccountSearchPage(page)),
 
   // ---- rate card feature ----
   rateCardPage: async ({ page }, use) => use(new RateCardPage(page)),
