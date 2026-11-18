@@ -27,6 +27,12 @@ jobs:
       run: npm ci
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
+    - name: Show runner hardware
+      run: |
+        lscpu | grep -E 'Model name|^CPU\(s\)'
+        free -h
+        df -h /
+        cat /etc/os-release | grep PRETTY_NAME
     - name: Run Playwright tests
       run: npx playwright test $TESTS ${GREP:+--grep "$GREP"} --workers=1
       env:
