@@ -14,9 +14,16 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
     - uses: actions/checkout@v7
     - uses: actions/setup-node@v7
@@ -47,7 +54,7 @@ jobs:
         df -h /
         cat /etc/os-release | grep PRETTY_NAME
     - name: Run Playwright tests
-      run: npx playwright test $TESTS ${GREP:+--grep "$GREP"}
+      run: npx playwright test $TESTS ${GREP:+--grep "$GREP"} --shard=${{ matrix.shard }}/3
       env:
         TESTS: ${{ inputs.tests }}
         GREP: ${{ inputs.grep }}
@@ -60,6 +67,77 @@ jobs:
     - uses: actions/upload-artifact@v7
       if: ${{ !cancelled() }}
       with:
-        name: test-reports
+        name: test-reports-shard-${{ matrix.shard }}
         path: reports/
         retention-days: 30
+
+  report:
+    needs: test
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+    - uses: actions/checkout@v7
+    - uses: actions/setup-node@v7
+      with:
+        node-version: lts/*
+        cache: npm
+    - name: Install dependencies
+      run: npm ci --no-audit --no-fund
+    - name: Download all shard reports
+      uses: actions/download-artifact@v7
+      with:
+        pattern: test-reports-shard-*
+        path: shards
+    - name: Build combined reports
+      run: |
+        mkdir -p merged-allure site/html site/excel
+        for d in shards/*/; do
+          n=$(basename "$d" | sed 's/test-reports-shard-//')
+          [ -d "$d/allure-results" ] && cp -r "$d"/allure-results/. merged-allure/
+          [ -d "$d/html" ] && cp -r "$d/html" "site/html/shard-$n"
+          [ -d "$d/excel" ] && cp -r "$d/excel" "site/excel/shard-$n"
+        done
+        npx allure generate merged-allure -o site/allure --clean
+        {
+          echo '<!doctype html><meta charset="utf-8"><title>Atlas Test Reports</title>'
+          echo '<h1>Atlas Test Reports</h1><ul>'
+          echo '<li><a href="allure/index.html">Allure report (all shards combined)</a></li>'
+          for h in site/html/*/; do
+            n=$(basename "$h")
+            echo "<li><a href=\"html/$n/index.html\">Playwright HTML report - $n</a></li>"
+          done
+          echo '</ul><p>Excel workbooks are in the <code>test-reports-shard-N</code> artifacts of the run (also under <code>excel/</code> here).</p>'
+        } > site/index.html
+    - name: Upload combined reports (artifact)
+      id: combined
+      uses: actions/upload-artifact@v7
+      with:
+        name: combined-reports
+        path: site/
+        retention-days: 30
+    - name: Upload Pages artifact
+      if: github.event_name != 'pull_request'
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: site/
+    - name: Deploy to GitHub Pages
+      id: deploy
+      if: github.event_name != 'pull_request'
+      uses: actions/deploy-pages@v4
+    - name: Report links
+      run: |
+        {
+          echo '## Test reports'
+          if [ -n "${{ steps.deploy.outputs.page_url }}" ]; then
+            echo "- [Report index](${{ steps.deploy.outputs.page_url }})"
+            echo "- [Allure report](${{ steps.deploy.outputs.page_url }}allure/index.html)"
+          fi
+          echo "- [Download combined reports (zip)](${{ steps.combined.outputs.artifact-url }})"
+        } >> "$GITHUB_STEP_SUMMARY"
