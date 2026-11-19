@@ -166,7 +166,7 @@ test.describe('Account Search - Entity Search Specification (62828)', () => {
     expectOk(res);
     const got = ids(await quickRows(p, res));
     await recordTestValues(testInfo, { search: DATA.ownerPersonLast, Outcome: outcome(res), [`Accounts of ${DATA.ownerPerson}`]: owned.length });
-    test.skip(!owned.length, `No account owned by Person "${DATA.ownerPerson}" - set SEARCH_ACCOUNT_OWNER_PERSON`);
+    test.skip(!owned.length, `No account owned by Person "${DATA.ownerPerson}" - run account.spec (creates one) or set SEARCH_ACCOUNT_OWNER_PERSON`);
     expect(label(owned.filter(r => !got.includes(aid(r)))), 'every account of the person is returned').toEqual([]);
   });
 
@@ -529,7 +529,7 @@ test.describe('Account Search - Entity Search Specification (62828)', () => {
   test(tcTitle(c.ownerPerson), tcDetails(c.ownerPerson, MODULE), async ({ accountSearchPage: p }, testInfo) => {
     await applyAllureLabels(c.ownerPerson, MODULE);
     const owned = await p.accountRows([P('AccountOwner', 'equals', DATA.ownerPerson)]);
-    test.skip(!owned.length, `No account owned by Person "${DATA.ownerPerson}" - set SEARCH_ACCOUNT_OWNER_PERSON`);
+    test.skip(!owned.length, `No account owned by Person "${DATA.ownerPerson}" - run account.spec (creates one) or set SEARCH_ACCOUNT_OWNER_PERSON`);
     const seen = {};
     for (const [v, op] of [[DATA.ownerPersonFirst], [DATA.ownerPersonLast], [DATA.ownerPerson, 'equals']]) {
       const res = await advancedSearch(p, { text: { AccountOwner: op ? [v, op] : v } }, `Owner ${op || 'contains'} "${v}"`);
@@ -542,6 +542,8 @@ test.describe('Account Search - Entity Search Specification (62828)', () => {
 
   test(tcTitle(c.ownerSingle), tcDetails(c.ownerSingle, MODULE), async ({ accountSearchPage: p, page }, testInfo) => {
     await applyAllureLabels(c.ownerSingle, MODULE);
+    const personOwned = await p.countAccounts([P('AccountOwner', 'equals', DATA.ownerPerson)]);
+    test.skip(!personOwned, `No account owned by Person "${DATA.ownerPerson}" - run account.spec (creates one) or set SEARCH_ACCOUNT_OWNER_PERSON`);
     await p.gotoAdvanced();
     const ownerFields = await page.locator('#filtersDrawer [data-field-id]').evaluateAll(els => els.map(e => e.getAttribute('data-field-id')).filter(id => /owner/i.test(id)));
     const company = await advancedSearch(p, { text: { AccountOwner: DATA.ownerCompany } }, 'Company owner');

@@ -31,7 +31,8 @@ class CompanySearchPage extends PersonSearchPage {
    * last criteria on load, so wait for that search before resetting (its late response must not be taken for ours).
    */
   async gotoAdvanced() {
-    const autoSearch = this.page.waitForResponse(r => RESULTS_DATA.test(r.url()), { timeout: 6_000 }).catch(() => null);
+    // under parallel load the auto-search can take well over 6 s; a late one would otherwise be read as our Apply's result
+    const autoSearch = this.page.waitForResponse(r => RESULTS_DATA.test(r.url()), { timeout: 30_000 }).catch(() => null);
     await this.open(`/Search?entityId=${COMPANY_ENTITY_ID}`);
     await this.waitForVisible(this.openFiltersButton);
     await autoSearch;

@@ -22,7 +22,6 @@ const { observe, shot, squash, openCard, addRate, linesOn, lineValues, expectSce
  * (need a bundle version to be unpublished), the RecentReferencesCount / EnableLastRateNotice settings.
  */
 
-test.describe.configure({ mode: 'default' });   // in order, one worker
 
 /** Logs an edit: previous vs updated values of the line. */
 const recordChange = (testInfo, tc, card, before, after) => recordUpdated(testInfo, MODULE, tc, before, after, { url: card.url, id: card.id });

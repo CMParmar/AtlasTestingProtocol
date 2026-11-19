@@ -19,7 +19,6 @@ const {
  * Not automated: archived / disabled targets (BR-15, BR-19 - the Target list only offers available ones).
  */
 
-test.describe.configure({ mode: 'default' });   // in order, one worker
 
 /** Adds a rate (Add Rate, fill, Save) for the test's data with dates resolved against today; logs the new line. */
 async function addAndSave(rc, testInfo, tc, card, data = dated(tc.data, card.today)) {

@@ -19,8 +19,6 @@ const { test, expect } = require('../fixtures/fixtures');
 const { DOCUMENT } = require('../utils/constants');
 const { name, VIEW_EDIT_MODULE: MODULE, viewEditCases: c } = require('../testData/documentData');
 const { tcDetails, tcTitle, recordTestValues, recordUrl } = require('../utils/testCase');
-const { DocumentPage } = require('../pages/document/documentPage');
-const { env } = require('../utils/testData');
 
 const { STORAGE } = DOCUMENT;
 
@@ -36,17 +34,7 @@ test.describe('View & Edit Document (62432)', () => {
   // the shared parent (Project 819) loads slowly in the sandbox and some tests reload it twice: allow for that
   test.beforeEach(() => { test.setTimeout(300_000); });
 
-  // every run leaves ~20 documents on the shared parent, which slows its page down: soft-delete them when the file is done
-  test.afterAll(async ({ browser }, testInfo) => {
-    testInfo.setTimeout(600_000);
-    const { storageState, baseURL } = testInfo.project.use;
-    const context = await browser.newContext({ storageState, baseURL });
-    try {
-      await new DocumentPage(await context.newPage()).cleanUpTestDocuments({ runTag: env.runTag });
-    } finally {
-      await context.close();
-    }
-  });
+  // the run-tagged documents on the shared parent are soft-deleted once, after every worker is done: tests/documents.teardown.js
 
   // ---------- MF-2: View ----------
   test(tcTitle(c.viewFile), tcDetails(c.viewFile, MODULE), async ({ documentPage, page }, testInfo) => {

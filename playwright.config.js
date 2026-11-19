@@ -55,8 +55,10 @@ export default defineConfig({
   timeout: 190_000,
   expect: { timeout: 10_000 },
   retries: 1,
-  // Lockout/throttle tests change server state for one user, so run serially
-  workers: 1,
+  // Every test of every file is spread over 5 workers (override with WORKERS=n, e.g. `WORKERS=8 npx playwright test`).
+  // To run one file in order on a single worker, add test.describe.configure({ mode: 'default' }) to it.
+  workers: Number(process.env.WORKERS) || 5,
+  fullyParallel: true,
   // traces / screenshots / videos of failed tests
   outputDir: 'reports/artifacts',
   reporter: [
@@ -100,17 +102,26 @@ export default defineConfig({
       dependencies: ['setup'],
     },
 
-    // Sign In specs: must start signed out, so no storageState
+    // Sign In specs: must start signed out, so no storageState. Mobile starts after desktop so the two runs'
+    // wrong-password / throttle / lockout tests do not hit the same test users at the same time.
     { name: 'chromium', testMatch: /signIn\.spec\.js/, use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile', testMatch: /signIn\.spec\.js/, use: { ...devices['Pixel 7'] } },
+    { name: 'mobile', testMatch: /signIn\.spec\.js/, dependencies: ['chromium'], use: { ...devices['Pixel 7'] } },
 
-    // Functional specs merged from the other project (person, company, account, admin-reset, project).
+    // Functional specs (person, company, account, project, service, every search spec, ... and every new spec).
     // Reuse the saved session; no retries: a retried "create" test would add a second record.
     {
       name: 'functional',
-      testIgnore: [/signIn\.spec\.js/, /createTask\.spec\.js/, /viewEditTask\.spec\.js/, /manageTask\.spec\.js/, /signalCenter\.spec\.js/, /auth\.setup\.js/, /login\.spec\.js/],
+      testIgnore: [/signIn\.spec\.js/, /createTask\.spec\.js/, /viewEditTask\.spec\.js/, /manageTask\.spec\.js/, /signalCenter\.spec\.js/, /auth\.setup\.js/, /login\.spec\.js/, /\.teardown\.js/],
       retries: 0,
       dependencies: ['setup'],
+      teardown: 'cleanup',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, storageState: AUTH_FILE },
+    },
+
+    // Runs once after every functional test is done: soft-deletes the run-tagged test documents (tests/documents.teardown.js)
+    {
+      name: 'cleanup',
+      testMatch: /documents\.teardown\.js/,
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, storageState: AUTH_FILE },
     },
   ],

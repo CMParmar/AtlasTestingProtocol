@@ -41,7 +41,6 @@ function rtest(tc, body) {
 
 test.describe('Admin - Reset User Account (62294)', () => {
   // one worker, in order: every test works on the same test user
-  test.describe.configure({ mode: 'default' });
   test.skip(!env.resetTargetPersonId && !env.resetTargetEmail,
     'Set RESET_TARGET_PERSON_ID and/or RESET_TARGET_EMAIL in .env to a dedicated sandbox test user');
 
