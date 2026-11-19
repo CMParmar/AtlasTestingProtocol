@@ -17,6 +17,12 @@ on:
 permissions:
   contents: read
 
+# All runs sign in as the same sandbox user and change the same data, so two runs (e.g. a push and a pull_request,
+# or two manual runs) must never overlap. Extra runs wait in the queue instead of being cancelled.
+concurrency:
+  group: atlas-sandbox
+  cancel-in-progress: false
+
 jobs:
   test:
     runs-on: ubuntu-latest
