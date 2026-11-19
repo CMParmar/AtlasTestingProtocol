@@ -1,26 +1,56 @@
 name: Playwright Tests
 on:
   workflow_dispatch:
+    inputs:
+      tests:
+        description: 'Spec files or folders to run (space-separated, e.g. tests/person.spec.js tests/company.spec.js). Leave empty for all.'
+        required: false
+        default: ''
+      grep:
+        description: 'Only run tests whose title matches this text (optional)'
+        required: false
+        default: ''
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
 jobs:
   test:
-    timeout-minutes: 180
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
     - uses: actions/setup-node@v7
       with:
         node-version: lts/*
+        cache: npm
     - name: Install dependencies
-      run: npm ci
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
+      run: npm ci --no-audit --no-fund
+    - name: Get Playwright version
+      id: pw
+      run: echo "version=$(npx playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+    - name: Cache Playwright browsers
+      id: pw-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+    - name: Install Playwright Chromium (cache miss)
+      if: steps.pw-cache.outputs.cache-hit != 'true'
+      run: npx playwright install --with-deps chromium
+    - name: Install Playwright system deps only (cache hit)
+      if: steps.pw-cache.outputs.cache-hit == 'true'
+      run: npx playwright install-deps chromium
+    - name: Show runner hardware
+      run: |
+        lscpu | grep -E 'Model name|^CPU\(s\)'
+        free -h
+        df -h /
+        cat /etc/os-release | grep PRETTY_NAME
     - name: Run Playwright tests
-      run: npx playwright test
+      run: npx playwright test $TESTS ${GREP:+--grep "$GREP"}
       env:
+        TESTS: ${{ inputs.tests }}
+        GREP: ${{ inputs.grep }}
         BASE_URL: ${{ secrets.BASE_URL }}
         USER_EMAIL: ${{ secrets.USER_EMAIL }}
         USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
