@@ -33,7 +33,7 @@ jobs:
         df -h /
         cat /etc/os-release | grep PRETTY_NAME
     - name: Run Playwright tests
-      run: npx playwright test $TESTS ${GREP:+--grep "$GREP"}`
+      run: npx playwright test $TESTS ${GREP:+--grep "$GREP"}
       env:
         TESTS: ${{ inputs.tests }}
         GREP: ${{ inputs.grep }}
