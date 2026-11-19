@@ -58,7 +58,10 @@ export default defineConfig({
   timeout: 120000,  
   expect: { timeout: 10000 },
   retries: 1,
-  workers: 10,
+  // Every test of every file is spread over 5 workers (override with WORKERS=n, e.g. `WORKERS=8 npx playwright test`).
+  // To run one file in order on a single worker, add test.describe.configure({ mode: 'default' }) to it.
+  workers: Number(process.env.WORKERS) || 10,
+  fullyParallel: true,
   outputDir: 'reports/artifacts',
   reporter: [
     ['list'],
@@ -101,10 +104,11 @@ export default defineConfig({
       dependencies: ['setup'],
     },
 
-    // Sign In specs: must start signed out, so no storageState
+    // Sign In specs: must start signed out, so no storageState. Mobile starts after desktop so the two runs'
+    // wrong-password / throttle / lockout tests do not hit the same test users at the same time.
     { name: 'chromium', testMatch: /signIn\.spec\.js/, use: { ...devices['Desktop Chrome'] } },
 
-    // Functional specs merged from the other project (person, company, account, admin-reset, project).
+    // Functional specs (person, company, account, project, service, every search spec, ... and every new spec).
     // Reuse the saved session; no retries: a retried "create" test would add a second record.
     // {
     //   name: 'functional',
