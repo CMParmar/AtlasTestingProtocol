@@ -32,6 +32,21 @@ const { NotifyUserPage } = require('../pages/notification/notifyUserPage');
 
 /** Page objects injected into every test. */
 const test = base.test.extend({
+  // ---- network usage: bytes sent + received by the browser during the test (read by reporters/excel-reporter.js) ----
+  // Runs automatically for every test; headers and bodies of every finished request of the context are counted.
+  networkUsage: [async ({ context }, use, testInfo) => {
+    const pending = [];
+    const onDone = req => pending.push(
+      req.sizes()
+        .then(s => [s.requestBodySize, s.requestHeadersSize, s.responseBodySize, s.responseHeadersSize].reduce((a, n) => a + Math.max(0, n || 0), 0))
+        .catch(() => 0));
+    context.on('requestfinished', onDone);
+    await use();
+    context.off('requestfinished', onDone);
+    const bytes = (await Promise.all(pending)).reduce((a, n) => a + n, 0);
+    testInfo.annotations.push({ type: 'DataTransferredBytes', description: String(bytes) });
+  }, { auto: true }],
+
   // ---- login feature ----
   loginPage: async ({ page }, use) => use(new LoginPage(page)),
 

@@ -63,6 +63,10 @@ class ExcelReporter {
     if (status === 'Known Defect') error = `Known defect: ${defect.description}`;
     if (status === 'Fail' && defect && result.status === 'passed') error = `Known defect no longer reproduces - the app looks fixed; remove "defect" from ${annotation(test, 'TestCaseNo') || 'the case'}`;
     const created = test.annotations.filter(a => a.type === 'CreatedRecord').map(a => { try { return JSON.parse(a.description); } catch { return null; } }).filter(Boolean);
+    // network usage of the last attempt: average throughput = bytes sent + received / test duration (megabits per second)
+    const bytesAnn = (result.annotations || []).find(a => a.type === 'DataTransferredBytes');
+    const dataBytes = bytesAnn ? Number(bytesAnn.description) : null;
+    const mbps = dataBytes !== null && result.duration > 0 ? (dataBytes * 8) / 1e6 / (result.duration / 1000) : null;
     const module = annotation(test, 'Module') || (/signIn/i.test(file) ? 'Login' : /createTask/i.test(file) ? 'Task' : test.parent.title || 'Other');
     this.cases.set(test.id, {
       id,
@@ -79,6 +83,8 @@ class ExcelReporter {
       actual: status === 'Fail' || status === 'Known Defect' ? error : status === 'Skip' ? (skip && skip.description) || 'Skipped' : '',
       durationMs: test.results.reduce((s, r) => s + r.duration, 0),
       runId: this.runId,
+      dataMb: dataBytes === null ? null : dataBytes / 1e6,
+      mbps,
       created,
     });
   }
@@ -344,11 +350,12 @@ class ExcelReporter {
       { header: 'Condition', key: 'condition', width: 40 }, { header: 'Test Values', key: 'values', width: 45 },
       { header: 'Expected Result', key: 'expected', width: 50 }, { header: 'Actual Result', key: 'actual', width: 55 },
       { header: 'Result', key: 'status', width: 9 }, { header: 'Duration (s)', key: 'secs', width: 12 },
+      { header: 'Avg Throughput (Mbps)', key: 'mbps', width: 14 },
       { header: 'Run ID', key: 'runId', width: 17 }, { header: 'URL', key: 'url', width: 50 },
     ];
     this.styleHeader(ws);
     for (const c of cases) {
-      const row = ws.addRow({ ...c, secs: Math.round(c.durationMs / 10) / 100, url: c.url ? { text: c.url, hyperlink: c.url } : '' });
+      const row = ws.addRow({ ...c, secs: Math.round(c.durationMs / 10) / 100, mbps: c.mbps == null ? '' : Math.round(c.mbps * 1000) / 1000, url: c.url ? { text: c.url, hyperlink: c.url } : '' });
       row.alignment = { vertical: 'top', wrapText: true };
       row.eachCell(cell => { cell.border = border; });
       const res = row.getCell('status');
@@ -358,7 +365,7 @@ class ExcelReporter {
       if (c.url) row.getCell('url').font = { color: { argb: 'FF0563C1' }, underline: true };
     }
     ws.views = [{ state: 'frozen', ySplit: 1, xSplit: 1 }];
-    if (cases.length) ws.autoFilter = { from: 'A1', to: 'N1' };
+    if (cases.length) ws.autoFilter = { from: 'A1', to: 'O1' };
   }
 
   dataSheet(wb, name, records) {

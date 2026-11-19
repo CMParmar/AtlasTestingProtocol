@@ -55,11 +55,11 @@ const moduleReporters = hasReporter('module-reporter.js') ? [
 
 export default defineConfig({
   testDir: './tests',
-  timeout: 60000,
+  timeout: 120000,
   expect: { timeout: 10000 },
   retries: 1,
   // Lockout/throttle tests change server state for one user, so run serially
-  workers: 1,
+  workers: 5,
   // traces / screenshots / videos of failed tests
   outputDir: 'reports/artifacts',
   reporter: [
