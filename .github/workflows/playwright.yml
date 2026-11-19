@@ -23,7 +23,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        # The app stores scope / tab / filters per user, so specs that share the signed-in user must never run
+        # at the same time (not in parallel workers, not on parallel machines). Each job below owns one project
+        # and runs it with a single worker; the two jobs use different projects/state and run side by side.
+        include:
+          - name: tasks
+            project: chromium-auth
+          - name: signin
+            project: chromium
     steps:
     - uses: actions/checkout@v7
     - uses: actions/setup-node@v7
@@ -54,7 +61,7 @@ jobs:
         df -h /
         cat /etc/os-release | grep PRETTY_NAME
     - name: Run Playwright tests
-      run: npx playwright test $TESTS ${GREP:+--grep "$GREP"} --shard=${{ matrix.shard }}/3
+      run: npx playwright test $TESTS ${GREP:+--grep "$GREP"} --project=${{ matrix.project }} --workers=1 --pass-with-no-tests
       env:
         TESTS: ${{ inputs.tests }}
         GREP: ${{ inputs.grep }}
@@ -67,7 +74,7 @@ jobs:
     - uses: actions/upload-artifact@v7
       if: ${{ !cancelled() }}
       with:
-        name: test-reports-shard-${{ matrix.shard }}
+        name: test-reports-${{ matrix.name }}
         path: reports/
         retention-days: 30
 
@@ -93,16 +100,16 @@ jobs:
     - name: Download all shard reports
       uses: actions/download-artifact@v7
       with:
-        pattern: test-reports-shard-*
+        pattern: test-reports-*
         path: shards
     - name: Build combined reports
       run: |
         mkdir -p merged-allure site/html site/excel
         for d in shards/*/; do
-          n=$(basename "$d" | sed 's/test-reports-shard-//')
+          n=$(basename "$d" | sed 's/test-reports-//')
           [ -d "$d/allure-results" ] && cp -r "$d"/allure-results/. merged-allure/
-          [ -d "$d/html" ] && cp -r "$d/html" "site/html/shard-$n"
-          [ -d "$d/excel" ] && cp -r "$d/excel" "site/excel/shard-$n"
+          [ -d "$d/html" ] && cp -r "$d/html" "site/html/$n"
+          [ -d "$d/excel" ] && cp -r "$d/excel" "site/excel/$n"
         done
         npx allure generate merged-allure -o site/allure --clean
         {
@@ -113,7 +120,7 @@ jobs:
             n=$(basename "$h")
             echo "<li><a href=\"html/$n/index.html\">Playwright HTML report - $n</a></li>"
           done
-          echo '</ul><p>Excel workbooks are in the <code>test-reports-shard-N</code> artifacts of the run (also under <code>excel/</code> here).</p>'
+          echo '</ul><p>Excel workbooks are in the <code>test-reports-*</code> artifacts of the run (also under <code>excel/</code> here).</p>'
         } > site/index.html
     - name: Upload combined reports (artifact)
       id: combined
@@ -124,12 +131,14 @@ jobs:
         retention-days: 30
     - name: Upload Pages artifact
       if: github.event_name != 'pull_request'
+      continue-on-error: true
       uses: actions/upload-pages-artifact@v3
       with:
         path: site/
     - name: Deploy to GitHub Pages
       id: deploy
       if: github.event_name != 'pull_request'
+      continue-on-error: true   # Pages not enabled yet -> do not fail the run; the zip artifact still has everything
       uses: actions/deploy-pages@v4
     - name: Report links
       run: |
