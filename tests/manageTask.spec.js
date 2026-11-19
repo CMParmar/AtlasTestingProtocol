@@ -312,7 +312,8 @@ test.describe('Manage Tasks', () => {
       expect(await manageTaskPage.getChipTexts()).toContain('Due Date: Overdue');
       await manageTaskPage.removeChip('dueDate');
       await expect(manageTaskPage.filterChips).toHaveCount(0);
-      expect(await manageTaskPage.rows.count()).toBe(total);
+      // the list re-renders after the chip is removed: poll instead of reading the count once
+      await expect.poll(() => manageTaskPage.rows.count(), { timeout: 30_000 }).toBe(total);
     });
   });
 
