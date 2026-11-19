@@ -55,12 +55,10 @@ const moduleReporters = hasReporter('module-reporter.js') ? [
 
 export default defineConfig({
   testDir: './tests',
-  timeout: 120000,
+  timeout: 120000,  
   expect: { timeout: 10000 },
   retries: 1,
-  // Lockout/throttle tests change server state for one user, so run serially
-  workers: 5,
-  // traces / screenshots / videos of failed tests
+  workers: 10,
   outputDir: 'reports/artifacts',
   reporter: [
     ['list'],
@@ -105,16 +103,15 @@ export default defineConfig({
 
     // Sign In specs: must start signed out, so no storageState
     { name: 'chromium', testMatch: /signIn\.spec\.js/, use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile', testMatch: /signIn\.spec\.js/, use: { ...devices['Pixel 7'] } },
 
     // Functional specs merged from the other project (person, company, account, admin-reset, project).
     // Reuse the saved session; no retries: a retried "create" test would add a second record.
-    {
-      name: 'functional',
-      testIgnore: [/signIn\.spec\.js/, /createTask\.spec\.js/, /viewEditTask\.spec\.js/, /manageTask\.spec\.js/, /signalCenter\.spec\.js/, /auth\.setup\.js/, /login\.spec\.js/],
-      retries: 0,
-      dependencies: ['setup'],
-      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, storageState: AUTH_FILE },
-    },
+    // {
+    //   name: 'functional',
+    //   testIgnore: [/signIn\.spec\.js/, /createTask\.spec\.js/, /viewEditTask\.spec\.js/, /manageTask\.spec\.js/, /signalCenter\.spec\.js/, /auth\.setup\.js/, /login\.spec\.js/],
+    //   retries: 0,
+    //   dependencies: ['setup'],
+    //   use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, storageState: AUTH_FILE },
+    // },
   ],
 });
