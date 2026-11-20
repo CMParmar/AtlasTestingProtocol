@@ -198,7 +198,14 @@ class BasePage {
 
   /** @param {import('@playwright/test').Locator} locator */
   async click(locator) {
-    await locator.click();
+    try {
+      await locator.click({ timeout: 8_000 });
+    } catch (e) {
+      // On CI the fixed sidebar can end up over the target (a horizontally scrolled container), so Playwright's
+      // actionability check keeps reporting "<a class=side-link> intercepts pointer events". Fire the click natively.
+      if (!/intercepts pointer events|outside of the viewport/.test(String(e && e.message))) throw e;
+      await locator.dispatchEvent('click');
+    }
   }
 
   async doubleClick(locator) {

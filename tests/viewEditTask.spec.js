@@ -399,7 +399,7 @@ test.describe('View & Edit Task', () => {
       await reassignToOther(taskEditPage, task.title);
 
       await taskEditPage.reopenTask(task.title);
-      await taskEditPage.reminderTrigger.click({ force: true });
+      await taskEditPage.reminderTrigger.dispatchEvent('click'); // disabled and may sit outside the viewport: a real click is impossible
       await expect(taskEditPage.openReminderPopupPanel).toHaveCount(0);
     });
 

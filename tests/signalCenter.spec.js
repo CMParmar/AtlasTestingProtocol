@@ -197,6 +197,7 @@ test.describe('View Signal Center', () => {
       const list = await sc.getRowCount();
       skipUnless(list > 0, 'No starred Conversations to show a fully loaded list');
       const ids = await sc.getRowIds();
+      await sc.scrollToEnd(); // the load-more sentinel adds a little overflow: take the baseline at the end of the list
       const top = await sc.scrollTop();
       expect(await sc.scrollForMore(2_500), 'no further request when nothing remains').toBeNull();
       expect(await sc.getRowIds()).toEqual(ids);
