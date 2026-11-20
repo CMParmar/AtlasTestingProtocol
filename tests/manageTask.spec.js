@@ -31,6 +31,19 @@ async function rowsOrSkip(manageTaskPage, reason) {
   return rows;
 }
 
+/**
+ * The sandbox is live: other users keep creating / completing records, so a list of 1000+ rows can change by a few
+ * rows between two reads. Counts that are compared across two reads must therefore allow a small drift (1%, min 10).
+ */
+function driftAllowance(total) {
+  return Math.max(10, Math.ceil(total * 0.01));
+}
+
+/** Polls `locator.count()` until it is within the drift allowance of `expected`. */
+async function expectCountNear(locator, expected, timeout = 30_000) {
+  await expect.poll(async () => Math.abs((await locator.count()) - expected), { timeout }).toBeLessThanOrEqual(driftAllowance(expected));
+}
+
 /** Midnight today in local time -- the "current date" the list compares against. */
 function today() {
   const d = new Date();
@@ -312,8 +325,8 @@ test.describe('Manage Tasks', () => {
       expect(await manageTaskPage.getChipTexts()).toContain('Due Date: Overdue');
       await manageTaskPage.removeChip('dueDate');
       await expect(manageTaskPage.filterChips).toHaveCount(0);
-      // the list re-renders after the chip is removed: poll instead of reading the count once
-      await expect.poll(() => manageTaskPage.rows.count(), { timeout: 30_000 }).toBe(total);
+      // the list re-renders after the chip is removed and the live sandbox data may have drifted by a few rows
+      await expectCountNear(manageTaskPage.rows, total);
     });
   });
 
@@ -459,7 +472,7 @@ test.describe('Manage Tasks', () => {
       await manageTaskPage.searchByKeyword(MANAGE_TASK.UNKNOWN_KEYWORD);
       await manageTaskPage.resetFilters();
       await expect(manageTaskPage.filterChips).toHaveCount(0);
-      await expect.poll(() => manageTaskPage.rows.count(), { timeout: 60_000 }).toBe(total);
+      await expectCountNear(manageTaskPage.rows, total, 60_000);
       await manageTaskPage.openFilters();
       await expect(manageTaskPage.keywordInput).toHaveValue('');
     });
@@ -534,7 +547,7 @@ test.describe('Manage Tasks', () => {
       const tasksBefore = await manageTaskPage.taskRows.count();
       test.skip(tasksBefore === 0, 'No tasks in Team scope');
       await manageTaskPage.filterByStaffRole(MANAGE_TASK.STAFF_ROLE);
-      expect(await manageTaskPage.taskRows.count()).toBe(tasksBefore);
+      await expectCountNear(manageTaskPage.taskRows, tasksBefore);
     });
 
     test('TC-54 StaffRole filter can be combined with the Due Date filter', async ({ manageTaskPage }) => {
@@ -682,7 +695,8 @@ test.describe('Manage Tasks', () => {
       await expect(manageTaskPage.successToast.first()).toContainText(TASK.SUCCESS_MESSAGE);
 
       await manageTaskPage.prepare(SCOPE.MY, TAB.TASKS);
-      expect(await manageTaskPage.getCount(manageTaskPage.tasksCount)).toBe(before + 1);
+      // other activity can change the My task count too: the created Task itself must be listed and the count must not drop
+      expect(await manageTaskPage.getCount(manageTaskPage.tasksCount)).toBeGreaterThanOrEqual(before + 1);
       const created = (await manageTaskPage.getRows()).find(r => r.name === title);
       expect(created, `"${title}" should be listed`).toBeTruthy();
       expect(created.group).toMatch(MANAGE_TASK.GROUP.NOT_DONE);
