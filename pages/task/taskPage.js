@@ -53,7 +53,13 @@ class TaskPage extends BasePage {
   }
 
   async openCreateTaskDrawer() {
-    await this.click(this.addTaskButton);
+    // Under load the button can be clickable before its handler is bound, so the first click is lost:
+    // retry the click until the drawer actually opens.
+    await expect(async () => {
+      if (await this.drawerHeading.isVisible()) return;
+      await this.addTaskButton.click({ timeout: 5_000 });
+      await expect(this.drawerHeading).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 45_000 });
   }
 
   async selectOwnerByLabel(label) {
@@ -103,6 +109,25 @@ class TaskPage extends BasePage {
     await this.openReminderPopup();
     await this.enterReminder(isoDate, time24);
     await this.applyReminder();
+  }
+
+  /**
+   * Saving re-renders a very large list, so the toast can come and go between two polls.
+   * Records any success toast text into window.__taskToasts from the moment it is installed.
+   */
+  async watchSuccessToast() {
+    await this.page.evaluate(() => {
+      window.__taskToasts = [];
+      const grab = () => document.querySelectorAll('.toast-success').forEach(
+        (el) => { const t = el.textContent.trim(); if (t && !window.__taskToasts.includes(t)) window.__taskToasts.push(t); });
+      grab();
+      new MutationObserver(grab).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+    });
+  }
+
+  /** Returns the toast texts seen since watchSuccessToast(). */
+  async getSeenToasts() {
+    return this.page.evaluate(() => window.__taskToasts || []);
   }
 
   async clickSave() {

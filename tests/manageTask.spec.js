@@ -150,10 +150,11 @@ test.describe('Manage Tasks', () => {
   test.describe('MF-2 / MF-11 Team and My scope', () => {
     test('TC-11 Team scope shows the StaffRole and Assigned to filters for Work Items', async ({ manageTaskPage }) => {
       await manageTaskPage.prepare(SCOPE.TEAM, TAB.WORK_ITEMS);
-      expect(await manageTaskPage.getScope()).toBe(SCOPE.TEAM);
+      // retrying assertions: Team scope loads 1000+ rows and the toggle / drawer can settle a moment after the list
+      await expect(manageTaskPage.scopeToggle).toHaveAttribute('data-scope', SCOPE.TEAM);
       await expect(manageTaskPage.scopeToggle).toHaveAttribute('aria-pressed', 'true');
       await manageTaskPage.openFilters();
-      await expect(manageTaskPage.staffRoleSelect).toBeVisible();
+      await expect(manageTaskPage.staffRoleSelect).toBeVisible({ timeout: 30_000 });
       await expect(manageTaskPage.assignedToSelect).toBeVisible();
       await expect(manageTaskPage.indicatorSelect).toBeVisible();
     });

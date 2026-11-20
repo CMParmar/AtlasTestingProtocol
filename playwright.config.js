@@ -65,6 +65,7 @@ export default defineConfig({
   outputDir: 'reports/artifacts',
   reporter: [
     ['list'],
+    ['./reporters/bandwidth-reporter.js', { outputDir: 'reports/bandwidth' }],
     ['html', { outputFolder: 'reports/html', open: 'never' }],
     ['allure-playwright', {
       resultsDir: 'reports/allure-results',

@@ -69,6 +69,7 @@ jobs:
     - name: Run Playwright tests
       run: npx playwright test $TESTS ${GREP:+--grep "$GREP"} --project=${{ matrix.project }} --workers=1 --pass-with-no-tests
       env:
+        BW_LABEL: ${{ matrix.name }}
         TESTS: ${{ inputs.tests }}
         GREP: ${{ inputs.grep }}
         BASE_URL: ${{ secrets.BASE_URL }}
@@ -110,12 +111,13 @@ jobs:
         path: shards
     - name: Build combined reports
       run: |
-        mkdir -p merged-allure site/html site/excel
+        mkdir -p merged-allure site/html site/excel site/bandwidth
         for d in shards/*/; do
           n=$(basename "$d" | sed 's/test-reports-//')
           [ -d "$d/allure-results" ] && cp -r "$d"/allure-results/. merged-allure/
           [ -d "$d/html" ] && cp -r "$d/html" "site/html/$n"
           [ -d "$d/excel" ] && cp -r "$d/excel" "site/excel/$n"
+          [ -f "$d/bandwidth/bandwidth.csv" ] && cp "$d/bandwidth/bandwidth.csv" "site/bandwidth/bandwidth-$n.csv"
         done
         npx allure generate merged-allure -o site/allure --clean
         {
@@ -125,6 +127,9 @@ jobs:
           for h in site/html/*/; do
             n=$(basename "$h")
             echo "<li><a href=\"html/$n/index.html\">Playwright HTML report - $n</a></li>"
+          done
+          for b in site/bandwidth/*.csv; do
+            [ -f "$b" ] && echo "<li><a href=\"bandwidth/$(basename "$b")\">Bandwidth CSV - $(basename "$b" .csv | sed 's/bandwidth-//')</a></li>"
           done
           echo '</ul><p>Excel workbooks are in the <code>test-reports-*</code> artifacts of the run (also under <code>excel/</code> here).</p>'
         } > site/index.html

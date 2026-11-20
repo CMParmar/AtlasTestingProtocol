@@ -15,6 +15,7 @@ test.describe('Create Task', () => {
     await taskPage.clearSavedFilters();
     await taskPage.openCreateTaskDrawer();
     await expect(taskPage.drawerHeading).toBeVisible();
+    await taskPage.watchSuccessToast();
   });
 
   // ---------------- MF-1: Start Task Creation ----------------
@@ -39,7 +40,7 @@ test.describe('Create Task', () => {
   test('TC-03 create task with title only', async ({ taskPage }) => {
     await taskPage.enterTitle(uniqueTitle('AUTO title-only'));
     await taskPage.clickSave();
-    await expect(taskPage.successToast).toContainText(TASK.SUCCESS_MESSAGE);
+    await expect.poll(() => taskPage.getSeenToasts()).toContain(TASK.SUCCESS_MESSAGE);
     await expect(taskPage.drawerHeading).toBeHidden();
   });
 
@@ -50,7 +51,7 @@ test.describe('Create Task', () => {
     await taskPage.setReminder(dateOffset(2), TASK.REMINDER_TIME);
     expect(await taskPage.getReminderTriggerText()).not.toBe(TASK.REMINDER_PLACEHOLDER);
     await taskPage.clickSave();
-    await expect(taskPage.successToast).toContainText(TASK.SUCCESS_MESSAGE);
+    await expect.poll(() => taskPage.getSeenToasts()).toContain(TASK.SUCCESS_MESSAGE);
     await expect(taskPage.drawerHeading).toBeHidden();
   });
 
@@ -59,7 +60,7 @@ test.describe('Create Task', () => {
     const beforeCount = Number((before.match(/\d+/) || ['0'])[0]);
     await taskPage.enterTitle(uniqueTitle('AUTO count'));
     await taskPage.clickSave();
-    await expect(taskPage.successToast).toBeVisible();
+    await expect.poll(() => taskPage.getSeenToasts()).toContain(TASK.SUCCESS_MESSAGE);
     await expect.poll(async () => {
       const text = await taskPage.getTasksTabText();
       return Number((text.match(/\d+/) || ['0'])[0]);
@@ -70,14 +71,14 @@ test.describe('Create Task', () => {
     await taskPage.enterTitle(uniqueTitle('AUTO done'));
     await taskPage.selectStatusByLabel(TASK.DONE_STATUS_LABEL);
     await taskPage.clickSave();
-    await expect(taskPage.successToast).toContainText(TASK.SUCCESS_MESSAGE);
+    await expect.poll(() => taskPage.getSeenToasts()).toContain(TASK.SUCCESS_MESSAGE);
   });
 
   test('TC-07 create task assigned to another person (BR-4, BR-5)', async ({ taskPage }) => {
     await taskPage.selectOwnerByLabel(TASK.OTHER_OWNER_LABEL);
     await taskPage.enterTitle(uniqueTitle('AUTO other-owner'));
     await taskPage.clickSave();
-    await expect(taskPage.successToast).toContainText(TASK.SUCCESS_MESSAGE);
+    await expect.poll(() => taskPage.getSeenToasts()).toContain(TASK.SUCCESS_MESSAGE);
     await expect(taskPage.drawerHeading).toBeHidden();
   });
 
@@ -115,7 +116,7 @@ test.describe('Create Task', () => {
     await taskPage.enterTitle(uniqueTitle('AUTO reminder-no-due'));
     await taskPage.setReminder(dateOffset(2), TASK.REMINDER_TIME);
     await taskPage.clickSave();
-    await expect(taskPage.successToast).toContainText(TASK.SUCCESS_MESSAGE);
+    await expect.poll(() => taskPage.getSeenToasts()).toContain(TASK.SUCCESS_MESSAGE);
   });
 
   const reminderVsDue = [
@@ -129,7 +130,7 @@ test.describe('Create Task', () => {
       await taskPage.enterDueDate(dateOffset(dueDays));
       await taskPage.setReminder(dateOffset(reminderDays), TASK.REMINDER_TIME);
       await taskPage.clickSave();
-      await expect(taskPage.successToast).toContainText(TASK.SUCCESS_MESSAGE);
+      await expect.poll(() => taskPage.getSeenToasts()).toContain(TASK.SUCCESS_MESSAGE);
     });
   }
 

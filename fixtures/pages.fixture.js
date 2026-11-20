@@ -12,6 +12,32 @@ const { SignalCenterPage } = require('../pages/signalCenter/signalCenterPage');
 const { getSignInUsers, generateTotp } = require('../utils/testData');
 
 const test = base.test.extend({
+  // ---- bandwidth monitoring (automatic: runs for every test using this fixture) ----
+  // Counts bytes received over the wire (compressed transfer size, Chromium CDP) and bytes sent (request bodies),
+  // stores them as a test annotation ('bandwidth') read by reporters/bandwidth-reporter.js, and attaches a JSON
+  // file to the HTML report. Does nothing on non-Chromium browsers.
+  bandwidth: [async ({ page, context }, use, testInfo) => {
+    let received = 0;
+    let sent = 0;
+    let requests = 0;
+    let cdp;
+    try {
+      cdp = await context.newCDPSession(page);
+      await cdp.send('Network.enable');
+      cdp.on('Network.loadingFinished', e => { received += e.encodedDataLength || 0; requests++; });
+      page.on('request', r => { sent += (r.postDataBuffer() || []).length; });
+    } catch { /* non-Chromium: no CDP, skip */ }
+
+    await use();
+
+    if (!cdp) return;
+    const kb = n => Math.round((n / 1024) * 10) / 10;
+    const result = { receivedKB: kb(received), sentKB: kb(sent), requests };
+    testInfo.annotations.push({ type: 'bandwidth', description: JSON.stringify(result) });
+    await testInfo.attach('bandwidth.json', { body: JSON.stringify(result, null, 2), contentType: 'application/json' }).catch(() => {});
+    await cdp.detach().catch(() => {});
+  }, { auto: true }],
+
   // ---- login feature ----
   loginPage: async ({ page }, use) => {
     await use(new LoginPage(page));
