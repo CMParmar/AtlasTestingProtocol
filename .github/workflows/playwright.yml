@@ -26,37 +26,46 @@ jobs:
       fail-fast: false
       matrix:
         # The whole suite (all 35 spec files, ~980 tests) is split by spec file into 6 jobs of ~165 tests, each run
-        # with 5 workers. Specs that depend on each other are kept in the SAME job, creators listed first:
-        #   job1: the Person search specs all change the same saved Person search preferences of the shared user.
+        # with 5 workers (job1 and job4: 1 worker, see below). Specs that depend on each other are kept in the SAME job, creators listed first:
+        #   job1: the Person search specs all change the same saved Person search preferences of the shared user,
+        #         so parallel workers overwrite each other's criteria/columns: 1 worker.
         #   job2: account + account-update create the records account-search looks for; company-search is
         #         read-only and shares the Company/Account search data.
         #   job3: tasks (createTask/viewEditTask/manageTask/signalCenter) share the per-user scope/tab/filters.
         #   job4: adddocument -> documentViewEdit share the parent project's documents; conversation-message ->
         #         conversation-follow/star/message-search share the parent project's Conversation; signIn.
+        #         job4 runs with 1 worker: parallel workers overload /Project/Edit/818 (goto timeouts) and the
+        #         conversation specs change the same follow/star state.
         #   job5: service -> service-update share one Account; rate-card-add -> rate-card share one Rate Card.
         #   job6: project -> project-update share one Account; person/company create + update specs.
         include:
           - name: job1
+            workers: 1
             tests: >-
               tests/person-search.spec.js tests/base-search.spec.js tests/advanced-search.spec.js
               tests/quick-search.spec.js tests/search-results-config.spec.js
           - name: job2
+            workers: 5
             tests: >-
               tests/account.spec.js tests/account-update.spec.js tests/account-search.spec.js
               tests/company-search.spec.js
           - name: job3
+            workers: 5
             tests: >-
               tests/createTask.spec.js tests/viewEditTask.spec.js tests/manageTask.spec.js tests/signalCenter.spec.js
           - name: job4
+            workers: 1
             tests: >-
               tests/adddocument.spec.js tests/documentViewEdit.spec.js tests/conversation-message.spec.js
               tests/conversation-follow.spec.js tests/conversation-star.spec.js tests/message-search.spec.js
               tests/signIn.spec.js
           - name: job5
+            workers: 5
             tests: >-
               tests/service.spec.js tests/service-update.spec.js tests/rate-card-add.spec.js tests/rate-card.spec.js
               tests/bundle.spec.js
           - name: job6
+            workers: 5
             tests: >-
               tests/project.spec.js tests/project-update.spec.js tests/person.spec.js tests/person-update.spec.js
               tests/person-negative.spec.js tests/company.spec.js tests/company-update.spec.js
@@ -91,7 +100,7 @@ jobs:
         df -h /
         cat /etc/os-release | grep PRETTY_NAME
     - name: Run Playwright tests
-      run: npx playwright test $TESTS ${GREP:+--grep "$GREP"} --workers=5 --pass-with-no-tests
+      run: npx playwright test $TESTS ${GREP:+--grep "$GREP"} --workers=${{ matrix.workers }} --pass-with-no-tests
       env:
         BW_LABEL: ${{ matrix.name }}
         TESTS: ${{ matrix.tests }}
