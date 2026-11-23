@@ -2,7 +2,6 @@
 // (merged in from the other Atlas project). The older login/task specs keep using pages.fixture.js.
 // Pages are grouped by feature under pages/<feature>/.
 const base = require('@playwright/test');
-const { installSafeClick } = require('../utils/safeClick');
 const { LoginPage } = require('../pages/login/loginPage');
 const { PersonPage } = require('../pages/person/personPage');
 const { PersonEditPage } = require('../pages/person/personEditPage');
@@ -33,12 +32,6 @@ const { NotifyUserPage } = require('../pages/notification/notifyUserPage');
 
 /** Page objects injected into every test. */
 const test = base.test.extend({
-  // sidebar-over-target clicks on CI: see utils/safeClick.js
-  page: async ({ page }, use) => {
-    installSafeClick(page);
-    await use(page);
-  },
-
   // ---- network usage: bytes sent + received by the browser during the test (read by reporters/excel-reporter.js) ----
   // Runs automatically for every test; headers and bodies of every finished request of the context are counted.
   networkUsage: [async ({ context }, use, testInfo) => {
