@@ -1,6 +1,8 @@
-// On the CI runner the app's fixed left sidebar ends up over the click target, so Playwright's actionability check
-// keeps failing with "<div class=side-foot> / <a class=side-link> ... intercepts pointer events" until the test times out.
-// This patches Locator.click once per worker: try a normal click first and, only for that failure, fire the click natively.
+// On the CI runner the app's left sidebar expands over the page (it opens while the mouse pointer rests on it) and covers the
+// form fields, so Playwright's actionability check keeps failing with "<div class=side-foot> / <a class=side-link> ...
+// intercepts pointer events" until the test times out.
+// This patches Locator.click once per worker: try a normal click first; for that failure only, move the pointer away from
+// the sidebar so it collapses and click for real again; if it is still covered, fire the click natively.
 // Every other failure (not visible, not enabled, detached, ...) is still retried for the full timeout and reported as before.
 
 const INTERCEPT = /intercepts pointer events|outside of the viewport/;
@@ -21,6 +23,15 @@ function installSafeClick(page) {
       return await original.call(this, { ...options, timeout: first });
     } catch (e) {
       if (INTERCEPT.test(String(e && e.message))) {
+        const page = this.page();
+        const size = page.viewportSize() || { width: 1280, height: 720 };
+        await page.mouse.move(Math.round(size.width * 0.75), Math.round(size.height * 0.5)).catch(() => {});
+        await page.waitForTimeout(500);
+        try {
+          return await original.call(this, { ...options, timeout: 3_000 });
+        } catch (e2) {
+          if (!INTERCEPT.test(String(e2 && e2.message))) throw e2;
+        }
         return this.dispatchEvent('click', undefined, { timeout: Math.max(1_000, total - (Date.now() - started)) });
       }
       const left = total - (Date.now() - started);
