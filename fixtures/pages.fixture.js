@@ -2,6 +2,7 @@
 // construct them directly. Pages are grouped by feature under pages/<feature>/.
 
 const base = require('@playwright/test');
+const { installSafeClick } = require('../utils/safeClick');
 const { LoginPage } = require('../pages/login/loginPage');
 const { VerificationPage } = require('../pages/login/verificationPage');
 const { WelcomeModal } = require('../pages/components/welcomeModal');
@@ -12,6 +13,12 @@ const { SignalCenterPage } = require('../pages/signalCenter/signalCenterPage');
 const { getSignInUsers, generateTotp } = require('../utils/testData');
 
 const test = base.test.extend({
+  // sidebar-over-target clicks on CI: see utils/safeClick.js
+  page: async ({ page }, use) => {
+    installSafeClick(page);
+    await use(page);
+  },
+
   // ---- bandwidth monitoring (automatic: runs for every test using this fixture) ----
   // Counts bytes received over the wire (compressed transfer size, Chromium CDP) and bytes sent (request bodies),
   // stores them as a test annotation ('bandwidth') read by reporters/bandwidth-reporter.js, and attaches a JSON
