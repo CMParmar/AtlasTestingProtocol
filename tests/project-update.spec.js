@@ -157,6 +157,7 @@ test.describe('Project - View & Edit Project (61967)', () => {
       await projectPage.openRecord(`/Account/Edit/${account.id}`);
       await projectPage.openTab('Projects');
       await projectPage.filterAccountProjects(tc.seed.projectName);
+      await projectPage.revealAccountProject(project.id, tc.seed.projectName);
     });
     const link = projectPage.accountProjectsTab.locator(`a[href*="/Project/"][href$="/${project.id}"]`)
       .or(projectPage.accountProjectsTab.getByRole('link', { name: tc.seed.projectName })).first();

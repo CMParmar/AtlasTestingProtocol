@@ -285,6 +285,7 @@ test.describe('Project - Create Project (62422)', () => {
       await projectPage.openRecord(`/Account/Edit/${seed.id}`);
       await projectPage.openTab('Projects');
       await projectPage.filterAccountProjects(values.projectName);
+      await projectPage.revealAccountProject(record.id, values.projectName);
       const byLink = projectPage.accountProjectsTab.locator(`a[href*="/Project/"][href$="/${record.id}"]`);
       await expect(projectPage.accountProjectsTab.getByText(values.projectName).or(byLink).first(), 'Project listed on the Account').toBeVisible();
     });

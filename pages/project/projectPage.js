@@ -328,6 +328,25 @@ class ProjectPage extends BasePage {
     }
   }
 
+  /**
+   * Account page, Projects tab: pages through the list until the project (its link by id, or its name) is shown.
+   * The account collects every run's projects (hundreds), the table has no search box and the Created On sort only
+   * has day granularity, so a new project is not necessarily on the first page.
+   * @param {string|number} id  project id
+   * @param {string} name       project name
+   */
+  async revealAccountProject(id, name) {
+    const tab = this.accountProjectsTab;
+    const target = tab.locator(`a[href*="/Project/"][href$="/${id}"]`).or(tab.getByRole('link', { name })).first();
+    const next = tab.locator('.dt-paging-button.next, .paginate_button.next, li.next, button[aria-label="Next"], [aria-label="Next page"]').first();
+    for (let page = 0; page < 30; page++) {
+      if (await target.isVisible()) return;
+      if (!(await next.count()) || !(await next.isEnabled().catch(() => false)) || /disabled/.test((await next.getAttribute('class')) || '')) return;
+      await next.click();
+      await this.page.waitForTimeout(500);
+    }
+  }
+
   /** The saved project is linked to the account: "Account Name:" links to /Account/Edit/{accountId}. */
   async expectLinkedToAccount(accountId) {
     await expect(this.accountNameLink, 'Saved project shows its Account').toBeVisible();
