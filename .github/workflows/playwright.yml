@@ -25,26 +25,34 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The whole suite (all 35 spec files, ~980 tests) is split by spec file into 3 jobs of roughly equal size,
-        # each running with 5 workers. No spec file is in two jobs.
+        # The whole suite (all 35 spec files, ~980 tests) is split by spec file into 3 jobs of ~325 tests, each run
+        # with 5 workers. Specs that depend on each other are kept in the SAME job, creators listed first:
+        #   job1: account + account-update create the records account-search looks for; the search specs
+        #         (person/company/account/base/advanced/quick/results-config) all change the same saved
+        #         search preferences of the shared user, so they must not run in parallel with other jobs.
+        #   job2: tasks (manageTask/signalCenter/createTask/viewEditTask) share the per-user scope/tab/filters;
+        #         adddocument -> documentViewEdit share the parent project's documents; conversation-message ->
+        #         conversation-follow/star/message-search share the parent project's Conversation.
+        #   job3: project -> project-update, service -> service-update and rate-card-add -> rate-card each share
+        #         one Account / Rate Card; the remaining specs are independent.
         include:
           - name: job1
             tests: >-
-              tests/manageTask.spec.js tests/signalCenter.spec.js tests/createTask.spec.js tests/viewEditTask.spec.js
-              tests/signIn.spec.js tests/company-search.spec.js tests/company-update.spec.js tests/company.spec.js
-              tests/company-negative.spec.js tests/admin-reset.spec.js
+              tests/account.spec.js tests/account-update.spec.js tests/account-search.spec.js
+              tests/person-search.spec.js tests/company-search.spec.js tests/base-search.spec.js
+              tests/advanced-search.spec.js tests/quick-search.spec.js tests/search-results-config.spec.js
           - name: job2
             tests: >-
-              tests/person-search.spec.js tests/account-search.spec.js tests/service-update.spec.js
-              tests/project-update.spec.js tests/person-update.spec.js tests/person.spec.js tests/person-negative.spec.js
-              tests/account-update.spec.js tests/account.spec.js tests/bundle.spec.js tests/conversation-follow.spec.js
-              tests/conversation-star.spec.js tests/notify-user.spec.js
+              tests/createTask.spec.js tests/viewEditTask.spec.js tests/manageTask.spec.js tests/signalCenter.spec.js
+              tests/signIn.spec.js tests/adddocument.spec.js tests/documentViewEdit.spec.js
+              tests/conversation-message.spec.js tests/conversation-follow.spec.js tests/conversation-star.spec.js
+              tests/message-search.spec.js
           - name: job3
             tests: >-
-              tests/service.spec.js tests/project.spec.js tests/rate-card-add.spec.js tests/rate-card.spec.js
-              tests/search-results-config.spec.js tests/quick-search.spec.js tests/advanced-search.spec.js
-              tests/base-search.spec.js tests/message-search.spec.js tests/conversation-message.spec.js
-              tests/adddocument.spec.js tests/documentViewEdit.spec.js
+              tests/project.spec.js tests/project-update.spec.js tests/service.spec.js tests/service-update.spec.js
+              tests/rate-card-add.spec.js tests/rate-card.spec.js tests/person.spec.js tests/person-update.spec.js
+              tests/person-negative.spec.js tests/company.spec.js tests/company-update.spec.js
+              tests/company-negative.spec.js tests/bundle.spec.js tests/admin-reset.spec.js tests/notify-user.spec.js
     steps:
     - uses: actions/checkout@v7
     - uses: actions/setup-node@v7
