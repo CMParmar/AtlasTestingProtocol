@@ -60,7 +60,7 @@ export default defineConfig({
   retries: 1,
   // Every test of every file is spread over 5 workers (override with WORKERS=n, e.g. `WORKERS=8 npx playwright test`).
   // To run one file in order on a single worker, add test.describe.configure({ mode: 'default' }) to it.
-  workers: Number(process.env.WORKERS) || 10,
+  workers: Number(process.env.WORKERS) || 5,
   fullyParallel: true,
   outputDir: 'reports/artifacts',
   reporter: [
@@ -111,12 +111,12 @@ export default defineConfig({
 
     // Functional specs (person, company, account, project, service, every search spec, ... and every new spec).
     // Reuse the saved session; no retries: a retried "create" test would add a second record.
-    // {
-    //   name: 'functional',
-    //   testIgnore: [/signIn\.spec\.js/, /createTask\.spec\.js/, /viewEditTask\.spec\.js/, /manageTask\.spec\.js/, /signalCenter\.spec\.js/, /auth\.setup\.js/, /login\.spec\.js/],
-    //   retries: 0,
-    //   dependencies: ['setup'],
-    //   use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, storageState: AUTH_FILE },
-    // },
+    {
+      name: 'functional',
+      testIgnore: [/signIn\.spec\.js/, /createTask\.spec\.js/, /viewEditTask\.spec\.js/, /manageTask\.spec\.js/, /signalCenter\.spec\.js/, /auth\.setup\.js/, /login\.spec\.js/],
+      retries: 0,
+      dependencies: ['setup'],
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, storageState: AUTH_FILE },
+    },
   ],
 });

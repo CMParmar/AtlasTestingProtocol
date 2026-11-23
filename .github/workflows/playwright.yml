@@ -2,10 +2,6 @@ name: Playwright Tests
 on:
   workflow_dispatch:
     inputs:
-      tests:
-        description: 'Spec files or folders to run (space-separated, e.g. tests/person.spec.js tests/company.spec.js). Leave empty for all.'
-        required: false
-        default: ''
       grep:
         description: 'Only run tests whose title matches this text (optional)'
         required: false
@@ -29,14 +25,26 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The app stores scope / tab / filters per user, so specs that share the signed-in user must never run
-        # at the same time (not in parallel workers, not on parallel machines). Each job below owns one project
-        # and runs it with a single worker; the two jobs use different projects/state and run side by side.
+        # The whole suite (all 35 spec files, ~980 tests) is split by spec file into 3 jobs of roughly equal size,
+        # each running with 5 workers. No spec file is in two jobs.
         include:
-          - name: tasks
-            project: chromium-auth
-          - name: signin
-            project: chromium
+          - name: job1
+            tests: >-
+              tests/manageTask.spec.js tests/signalCenter.spec.js tests/createTask.spec.js tests/viewEditTask.spec.js
+              tests/signIn.spec.js tests/company-search.spec.js tests/company-update.spec.js tests/company.spec.js
+              tests/company-negative.spec.js tests/admin-reset.spec.js
+          - name: job2
+            tests: >-
+              tests/person-search.spec.js tests/account-search.spec.js tests/service-update.spec.js
+              tests/project-update.spec.js tests/person-update.spec.js tests/person.spec.js tests/person-negative.spec.js
+              tests/account-update.spec.js tests/account.spec.js tests/bundle.spec.js tests/conversation-follow.spec.js
+              tests/conversation-star.spec.js tests/notify-user.spec.js
+          - name: job3
+            tests: >-
+              tests/service.spec.js tests/project.spec.js tests/rate-card-add.spec.js tests/rate-card.spec.js
+              tests/search-results-config.spec.js tests/quick-search.spec.js tests/advanced-search.spec.js
+              tests/base-search.spec.js tests/message-search.spec.js tests/conversation-message.spec.js
+              tests/adddocument.spec.js tests/documentViewEdit.spec.js
     steps:
     - uses: actions/checkout@v7
     - uses: actions/setup-node@v7
@@ -67,10 +75,10 @@ jobs:
         df -h /
         cat /etc/os-release | grep PRETTY_NAME
     - name: Run Playwright tests
-      run: npx playwright test $TESTS ${GREP:+--grep "$GREP"} --project=${{ matrix.project }} --workers=1 --pass-with-no-tests
+      run: npx playwright test $TESTS ${GREP:+--grep "$GREP"} --workers=5 --pass-with-no-tests
       env:
         BW_LABEL: ${{ matrix.name }}
-        TESTS: ${{ inputs.tests }}
+        TESTS: ${{ matrix.tests }}
         GREP: ${{ inputs.grep }}
         BASE_URL: ${{ secrets.BASE_URL }}
         USER_EMAIL: ${{ secrets.USER_EMAIL }}
