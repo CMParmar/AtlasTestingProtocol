@@ -9,6 +9,23 @@ const INTERCEPT = /intercepts pointer events|outside of the viewport/;
 const FIRST_ATTEMPT_MS = 5_000;
 const DEFAULT_TIMEOUT_MS = 15_000;   // matches use.actionTimeout in playwright.config.js
 
+const SIDEBAR_EXPANDED = 'document.querySelector("aside.sidebar") && document.querySelector("aside.sidebar").getBoundingClientRect().width > 150';
+
+/**
+ * The sidebar expands (about 300px wide) while the pointer rests on it and collapses a moment after the pointer leaves.
+ * Playwright moves the pointer straight to the target, so a click right after leaving the sidebar still lands on the
+ * expanding sidebar: on a dirty form that opens the "Unsaved Changes" modal instead of pressing Save/Continue.
+ * Moves the pointer away and waits for the collapse first.
+ */
+async function collapseSidebar(page) {
+  try {
+    if (!(await page.evaluate(SIDEBAR_EXPANDED))) return;
+    const size = page.viewportSize() || { width: 1280, height: 720 };
+    await page.mouse.move(Math.round(size.width * 0.75), Math.round(size.height * 0.5));
+    await page.waitForFunction(`!(${SIDEBAR_EXPANDED})`, undefined, { timeout: 2_000 });
+  } catch { /* page navigating or closed: let the click report it */ }
+}
+
 /** @param {import('@playwright/test').Page} page - any page; used only to reach the Locator class. */
 function installSafeClick(page) {
   const proto = Object.getPrototypeOf(page.locator('html'));
@@ -19,6 +36,7 @@ function installSafeClick(page) {
     const total = options.timeout === undefined ? DEFAULT_TIMEOUT_MS : options.timeout;
     const first = total > 0 ? Math.min(total, FIRST_ATTEMPT_MS) : total;
     const started = Date.now();
+    await collapseSidebar(this.page());
     try {
       return await original.call(this, { ...options, timeout: first });
     } catch (e) {

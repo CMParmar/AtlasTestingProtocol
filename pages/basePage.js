@@ -116,8 +116,16 @@ class BasePage {
         { message: 'DEFECT: no unsaved-changes warning was shown when leaving the page', timeout: 10_000 }).not.toBe('');
       if (dialogText) return dialogText;
       const text = (await this.dirtyModal.locator('.modal-body').innerText()).trim();
-      await this.dirtyModal.locator(`.modal-footer [data-action="${choice}"]`).click();
-      if (choice === 'cancel') await expect(this.dirtyModal).toBeHidden();
+      const button = this.dirtyModal.locator(`.modal-footer [data-action="${choice}"]`);
+      if (choice === 'cancel') {
+        // the modal can still be fading in when the button is clicked: click again until it closes
+        await expect(async () => {
+          if (await this.dirtyModal.isVisible()) await button.click({ timeout: 3_000 });
+          await expect(this.dirtyModal).toBeHidden({ timeout: 3_000 });
+        }).toPass({ timeout: 20_000 });
+      } else {
+        await button.click();
+      }
       return text;
     } finally {
       this.page.off('dialog', onDialog);
@@ -206,6 +214,20 @@ class BasePage {
       if (!/intercepts pointer events|outside of the viewport/.test(String(e && e.message))) throw e;
       await locator.dispatchEvent('click');
     }
+  }
+
+  /**
+   * Clicks the sidebar link away from a form with unsaved changes. The app may or may not show its "Unsaved Changes"
+   * modal (it differs between runs of the sandbox): when it does, Continue Without Saving is chosen.
+   * @returns {Promise<string>} the modal text, or '' when the page was left without a warning
+   */
+  async leaveDiscardingChanges() {
+    await this.leaveLink.click();
+    const shown = await this.dirtyModal.waitFor({ state: 'visible', timeout: 3_000 }).then(() => true, () => false);
+    if (!shown) return '';
+    const text = (await this.dirtyModal.locator('.modal-body').innerText()).trim();
+    await this.dirtyModal.locator('.modal-footer [data-action="continue"]').click();
+    return text;
   }
 
   async doubleClick(locator) {

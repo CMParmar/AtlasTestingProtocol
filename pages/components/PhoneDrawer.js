@@ -31,7 +31,11 @@ class PhoneDrawer {
       if (!(await this.numberInput.isVisible())) await this.openButton.click();
       await expect(this.numberInput).toBeVisible({ timeout: 2_000 });
     }).toPass({ timeout: 20_000 });
-    await this.numberInput.fill(phone.number);
+    // on a slow page the drawer script can reset the field after the fill ("Phone number is required"): fill until it sticks
+    await expect(async () => {
+      await this.numberInput.fill(phone.number);
+      await expect(this.numberInput).toHaveValue(/\d/, { timeout: 1_500 });
+    }).toPass({ timeout: 15_000 });
     await this.typeOption(phone.type || 'Mobile').click();
     await clickContinue(this.continueButton);
   }
