@@ -66,7 +66,7 @@ class AccountPage extends BasePage {
     } else {
       // a Person's Actions menu no longer offers it (only Grant Access): use "Add New Account" on the Accounts tab
       await this.page.keyboard.press('Escape');
-      await this.page.locator('main #tab-accounts-btn, main button.nav-link[data-bs-target="#pane-newacct"]').filter({ visible: true }).first().click();
+      await this.page.locator('main #tab-accounts-btn, main button.nav-link[data-bs-target="#pane-newacct"]').filter({ visible: true }).first().click({ timeout: 45_000 });   // the Person page can take a while to render its tabs
       await this.page.locator('main a[href*="/Account/Create"]').filter({ visible: true }).first().click();
     }
     await expect(this.accountNumber.or(this.advisory)).toBeVisible({ timeout: 30_000 });

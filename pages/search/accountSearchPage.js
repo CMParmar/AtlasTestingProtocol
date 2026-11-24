@@ -205,13 +205,19 @@ class AccountSearchPage extends PersonSearchPage {
    * drawer stays open after Apply and covers the grid, so the link's own click handler is fired directly.
    */
   async openFirstResult() {
-    // openEditPage() navigates (or opens a tab) after the click handler returns - wait for whichever happens
-    const popupP = this.page.context().waitForEvent('page', { timeout: 20_000 });
-    const sameTabP = this.page.waitForURL(OPENED_RECORD, { timeout: 20_000 }).then(() => this.page);
-    await this.resultEditLinks.first().dispatchEvent('click');
-    const target = await Promise.any([popupP, sameTabP]).catch(() => this.page);
-    popupP.catch(() => {});
-    sameTabP.catch(() => {});
+    // openEditPage() navigates (or opens a tab) after the click handler returns - wait for whichever happens.
+    // On a slow sandbox the first click can be lost before the handler is bound: click again once.
+    let target = this.page;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const popupP = this.page.context().waitForEvent('page', { timeout: 20_000 });
+      const sameTabP = this.page.waitForURL(OPENED_RECORD, { timeout: 20_000 }).then(() => this.page);
+      await this.resultEditLinks.first().dispatchEvent('click');
+      target = await Promise.any([popupP, sameTabP]).catch(() => null);
+      popupP.catch(() => {});
+      sameTabP.catch(() => {});
+      if (target) break;
+      target = this.page;
+    }
     if (target !== this.page) await target.waitForURL(OPENED_RECORD, { timeout: 20_000 }).catch(() => {});
     await target.waitForLoadState('domcontentloaded');
     return target;

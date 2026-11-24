@@ -32,9 +32,10 @@ class PhoneDrawer {
       await expect(this.numberInput).toBeVisible({ timeout: 2_000 });
     }).toPass({ timeout: 20_000 });
     // on a slow page the drawer script can reset the field after the fill ("Phone number is required"): fill until it sticks
+    // (only for numbers with digits: the negative tests type empty / non-numeric input on purpose, which the field rejects)
     await expect(async () => {
       await this.numberInput.fill(phone.number);
-      await expect(this.numberInput).toHaveValue(/\d/, { timeout: 1_500 });
+      if (/\d/.test(phone.number)) await expect(this.numberInput).toHaveValue(/\d/, { timeout: 1_500 });
     }).toPass({ timeout: 15_000 });
     await this.typeOption(phone.type || 'Mobile').click();
     await clickContinue(this.continueButton);
