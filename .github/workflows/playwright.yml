@@ -31,9 +31,10 @@ jobs:
         #         so parallel workers overwrite each other's criteria/columns: 1 worker.
         #   job2: account + account-update create the records account-search looks for; company-search is
         #         read-only and shares the Company/Account search data.
-        #   job3: tasks (createTask/viewEditTask/manageTask/signalCenter) share the per-user scope/tab/filters.
+        #   job3: tasks (createTask/viewEditTask/manageTask/signalCenter) share the per-user scope/tab/filters and
+        #         starred/unread counts (a starring test in another worker changes the others' counts): 1 worker.
         #   job4: adddocument -> documentViewEdit share the parent project's documents; conversation-message ->
-        #         conversation-follow/star/message-search share the parent project's Conversation; signIn.
+        #         conversation-follow/star/message-search/notify-user share the parent project's Conversation; signIn.
         #         job4 runs with 1 worker: parallel workers overload /Project/Edit/818 (goto timeouts) and the
         #         conversation specs change the same follow/star state.
         #   job5: service -> service-update share one Account; rate-card-add -> rate-card share one Rate Card.
@@ -50,7 +51,7 @@ jobs:
               tests/account.spec.js tests/account-update.spec.js tests/account-search.spec.js
               tests/company-search.spec.js
           - name: job3
-            workers: 5
+            workers: 1
             tests: >-
               tests/createTask.spec.js tests/viewEditTask.spec.js tests/manageTask.spec.js tests/signalCenter.spec.js
           - name: job4
@@ -58,7 +59,7 @@ jobs:
             tests: >-
               tests/adddocument.spec.js tests/documentViewEdit.spec.js tests/conversation-message.spec.js
               tests/conversation-follow.spec.js tests/conversation-star.spec.js tests/message-search.spec.js
-              tests/signIn.spec.js
+              tests/notify-user.spec.js tests/signIn.spec.js
           - name: job5
             workers: 5
             tests: >-
@@ -69,7 +70,7 @@ jobs:
             tests: >-
               tests/project.spec.js tests/project-update.spec.js tests/person.spec.js tests/person-update.spec.js
               tests/person-negative.spec.js tests/company.spec.js tests/company-update.spec.js
-              tests/company-negative.spec.js tests/admin-reset.spec.js tests/notify-user.spec.js
+              tests/company-negative.spec.js tests/admin-reset.spec.js
     steps:
     - uses: actions/checkout@v7
     - uses: actions/setup-node@v7
