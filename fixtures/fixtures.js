@@ -26,10 +26,17 @@ const { BundlePage } = require('../pages/bundle/BundlePage');
 const { DocumentPage } = require('../pages/document/documentPage');
 const { ServicePage } = require('../pages/service/servicePage');
 const { ServiceEditPage } = require('../pages/service/serviceEditPage');
+const { CancelServicePage } = require('../pages/service/cancelServicePage');
+const { CompleteServicePage } = require('../pages/service/completeServicePage');
 const { ConversationMessagePage } = require('../pages/conversation/conversationMessagePage');
 const { ConversationFollowPage } = require('../pages/conversation/conversationFollowPage');
 const { ConversationStarPage } = require('../pages/conversation/conversationStarPage');
 const { NotifyUserPage } = require('../pages/notification/notifyUserPage');
+const { TimeClockEditPage } = require('../pages/timeclock/timeClockEditPage');
+const { ProjectDashboardPage } = require('../pages/dashboard/projectDashboardPage');
+const { RecentlyViewedPage } = require('../pages/recentlyViewed/recentlyViewedPage');
+const { NotificationSettingsPage } = require('../pages/setting/notificationSettingsPage');
+const { WorkflowSimulationPage } = require('../pages/workflowTemplate/workflowSimulationPage');
 
 /** Page objects injected into every test. */
 const test = base.test.extend({
@@ -105,6 +112,12 @@ const test = base.test.extend({
   // ---- service feature (View & Edit Service - "Deliverable" in the UI) ----
   serviceEditPage: async ({ page }, use) => use(new ServiceEditPage(page)),
 
+  // ---- service feature (Cancel Service, 62476 - "Deliverable" in the UI) ----
+  cancelServicePage: async ({ page }, use) => use(new CancelServicePage(page)),
+
+  // ---- service feature (Complete Service, 62477 - "Deliverable" in the UI) ----
+  completeServicePage: async ({ page }, use) => use(new CompleteServicePage(page)),
+
   // ---- conversation feature (Write Conversation Message - COMM) ----
   conversationMessagePage: async ({ page }, use) => use(new ConversationMessagePage(page)),
 
@@ -116,6 +129,21 @@ const test = base.test.extend({
 
   // ---- notification feature (Notify User - COMM / Xselera) ----
   notifyUserPage: async ({ page }, use) => use(new NotifyUserPage(page)),
+
+  // ---- time clock feature (View & Edit TimeClock - TASK, "Time Entry" in the UI) ----
+  timeClockEditPage: async ({ page }, use) => use(new TimeClockEditPage(page)),
+
+  // ---- dashboard feature (View Project Dashboard - SERV, Bold BI embed) ----
+  projectDashboardPage: async ({ page }, use) => use(new ProjectDashboardPage(page)),
+
+  // ---- core feature (View Recently Viewed Records - CORE, /RecentlyViewed) ----
+  recentlyViewedPage: async ({ page }, use) => use(new RecentlyViewedPage(page)),
+
+  // ---- settings feature (Update Setting / Save Setting - SETT, /Setting/NotificationSettings) ----
+  notificationSettingsPage: async ({ page }, use) => use(new NotificationSettingsPage(page)),
+
+  // ---- workflow template feature (Simulate Workflow Template Version - TASK, /WorkflowTemplate/Edit/{id}) ----
+  workflowSimulationPage: async ({ page }, use) => use(new WorkflowSimulationPage(page)),
 });
 
 module.exports = { test, expect: base.expect };

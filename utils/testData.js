@@ -29,6 +29,8 @@ const env = {
   resetTargetPassword: process.env.RESET_TARGET_PASSWORD || '',
   // 62422 Create Project: existing Account to create projects on (empty = a Company + Account is seeded per worker)
   projectAccountId: process.env.PROJECT_ACCOUNT_ID || '',
+  // true = also run the Complete Service cases that tick "Don't show the confirmation again" (changes the setting of USER_EMAIL permanently)
+  completeAllowSuppress: /^(1|true|yes)$/i.test(process.env.COMPLETE_ALLOW_SUPPRESS || ''),
   // true = also run TC_PRJ_028, which ticks "Do not show again" (suppresses the notice for USER_EMAIL permanently)
   projectAllowSuppressNotice: /^(1|true|yes)$/i.test(process.env.PROJECT_ALLOW_SUPPRESS_NOTICE || ''),
   // base32 TOTP secret of the admin (USER_EMAIL), only needed when re-authentication asks for a TOTP code

@@ -186,6 +186,65 @@ class ConversationMessagePage extends BasePage {
     return raw.split(',').map(h => h.trim()).filter(Boolean);
   }
 
+  // ---- Edit (Edit Conversation Message, 62154) -------------------------------
+  // Edit Message sits in the card's "more options" menu (.message-menu-btn -> .edit-message-btn). It opens an inline editor
+  // (.message-edit-inline) inside the card with the text, a "m:ss remaining" timer and "Save changes"; the x closes it.
+  // A saved edit adds an "edited" badge (.edited-badge) to the text box.
+
+  menuButton(id) { return this.card(id).locator('.message-menu-btn'); }
+  editButton(id) { return this.card(id).locator('.edit-message-btn'); }
+  editedIndicator(id) { return this.card(id).locator('.edited-badge'); }
+  editRemainingTime(id) { return this.card(id).locator('.message-edit-time-remaining-inline'); }
+
+  /** The inline editor opened inside a card. */
+  editor(id) { return this.card(id).locator('.message-edit-inline'); }
+  editInput(id) { return this.card(id).locator('.message-edit-textarea-inline'); }
+  editSaveButton(id) { return this.card(id).locator('.message-edit-save-inline'); }
+  editCancelButton(id) { return this.card(id).locator('.message-edit-close-inline'); }
+
+  /** Warning toast ("This message can no longer be edited.") shown instead of the editor once the window has passed. */
+  get toastMessage() { return this.page.locator('.toast .toast-message'); }
+
+  /** Opens the card's "more options" menu and clicks Edit Message without waiting for the editor. */
+  async clickEdit(id) {
+    await this.click(this.menuButton(id));
+    await this.click(this.editButton(id));
+  }
+
+  /** Opens the card's "more options" menu and clicks Edit Message; waits for the editor. */
+  async startEdit(id) {
+    await this.clickEdit(id);
+    await this.editInput(id).waitFor({ state: 'visible' });
+  }
+
+  /** Replaces the text in the open editor (does not save). */
+  async fillEdit(id, text) {
+    await this.editInput(id).fill(text);
+  }
+
+  /** Clicks "Save changes" in the open editor. */
+  async saveEdit(id) {
+    await this.click(this.editSaveButton(id));
+  }
+
+  /** startEdit + fillEdit + saveEdit. */
+  async edit(id, text) {
+    await this.startEdit(id);
+    await this.fillEdit(id, text);
+    await this.saveEdit(id);
+  }
+
+  /** Seconds left shown by the editor ("3:45 remaining" -> 225). */
+  async getRemainingSeconds(id) {
+    const m = (await this.editRemainingTime(id).innerText()).match(/(\d+):(\d+)/);
+    return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+  }
+
+  /** Cards written by `author` that were not created in this run (older than the edit window), newest first. */
+  cardsBy(author) {
+    return this.cards.filter({ has: this.page.locator('.message-author', { hasText: author }) });
+  }
+
   // ---- Reply ---------------------------------------------------------------
 
   async reply(id, { all = false } = {}) {
