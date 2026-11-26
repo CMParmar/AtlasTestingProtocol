@@ -11,6 +11,7 @@ const { CompanyEditPage } = require('../pages/company/companyEditPage');
 const { AccountPage } = require('../pages/account/accountPage');
 const { AccountEditPage } = require('../pages/account/accountEditPage');
 const { AdminResetPage } = require('../pages/adminReset/adminResetPage');
+const { CreateUserPage } = require('../pages/user/createUserPage');
 const { ProjectPage } = require('../pages/project/projectPage');
 const { ProjectEditPage } = require('../pages/project/projectEditPage');
 const { MessageSearchPage } = require('../pages/search/messageSearchPage');
@@ -26,6 +27,12 @@ const { BundlePage } = require('../pages/bundle/BundlePage');
 const { DocumentPage } = require('../pages/document/documentPage');
 const { ServicePage } = require('../pages/service/servicePage');
 const { ServiceEditPage } = require('../pages/service/serviceEditPage');
+const { ServiceItemPage } = require('../pages/service/serviceItemPage');
+const { ServiceItemEditPage } = require('../pages/service/serviceItemEditPage');
+const { WorkflowTemplatePage } = require('../pages/workflow/workflowTemplatePage');
+const { WorkflowTemplateEditPage } = require('../pages/workflow/workflowTemplateEditPage');
+const { WorkflowPublishPage } = require('../pages/workflow/workflowPublishPage');
+const { WorkItemsPage } = require('../pages/service/workItemsPage');
 const { ConversationMessagePage } = require('../pages/conversation/conversationMessagePage');
 const { ConversationFollowPage } = require('../pages/conversation/conversationFollowPage');
 const { ConversationStarPage } = require('../pages/conversation/conversationStarPage');
@@ -41,17 +48,23 @@ const test = base.test.extend({
 
   // ---- network usage: bytes sent + received by the browser during the test (read by reporters/excel-reporter.js) ----
   // Runs automatically for every test; headers and bodies of every finished request of the context are counted.
+  // Also adds 'NetworkUsage' = {"requests","sentBytes","receivedBytes"} (sent = request headers + body, received = response
+  // headers + body), read by reporters/serviceitem-reporter.js for its bandwidth columns and summary.
   networkUsage: [async ({ context }, use, testInfo) => {
     const pending = [];
+    const pos = n => Math.max(0, n || 0);
     const onDone = req => pending.push(
       req.sizes()
-        .then(s => [s.requestBodySize, s.requestHeadersSize, s.responseBodySize, s.responseHeadersSize].reduce((a, n) => a + Math.max(0, n || 0), 0))
-        .catch(() => 0));
+        .then(s => ({ sent: pos(s.requestBodySize) + pos(s.requestHeadersSize), received: pos(s.responseBodySize) + pos(s.responseHeadersSize) }))
+        .catch(() => ({ sent: 0, received: 0 })));
     context.on('requestfinished', onDone);
     await use();
     context.off('requestfinished', onDone);
-    const bytes = (await Promise.all(pending)).reduce((a, n) => a + n, 0);
-    testInfo.annotations.push({ type: 'DataTransferredBytes', description: String(bytes) });
+    const sizes = await Promise.all(pending);
+    const sentBytes = sizes.reduce((a, s) => a + s.sent, 0);
+    const receivedBytes = sizes.reduce((a, s) => a + s.received, 0);
+    testInfo.annotations.push({ type: 'DataTransferredBytes', description: String(sentBytes + receivedBytes) });
+    testInfo.annotations.push({ type: 'NetworkUsage', description: JSON.stringify({ requests: sizes.length, sentBytes, receivedBytes }) });
   }, { auto: true }],
 
   // ---- login feature ----
@@ -71,6 +84,9 @@ const test = base.test.extend({
 
   // ---- admin reset feature ----
   adminResetPage: async ({ page }, use) => use(new AdminResetPage(page)),
+
+  // ---- user feature (Grant Access / Create User, 62284) ----
+  createUserPage: async ({ page }, use) => use(new CreateUserPage(page)),
 
   // ---- project feature ----
   projectPage: async ({ page }, use) => use(new ProjectPage(page)),
@@ -104,6 +120,24 @@ const test = base.test.extend({
 
   // ---- service feature (View & Edit Service - "Deliverable" in the UI) ----
   serviceEditPage: async ({ page }, use) => use(new ServiceEditPage(page)),
+
+  // ---- service feature (Create Service Item, 62419 - "Deliverable Type" in the UI) ----
+  serviceItemPage: async ({ page }, use) => use(new ServiceItemPage(page)),
+
+  // ---- service feature (View & Update Service Item, 62420 - "Deliverable Type" in the UI) ----
+  serviceItemEditPage: async ({ page }, use) => use(new ServiceItemEditPage(page)),
+
+  // ---- workflow feature (Create Workflow Template, 63069) ----
+  workflowTemplatePage: async ({ page }, use) => use(new WorkflowTemplatePage(page)),
+
+  // ---- workflow feature (View & Edit Workflow Template, 63063) ----
+  workflowTemplateEditPage: async ({ page }, use) => use(new WorkflowTemplateEditPage(page)),
+
+  // ---- workflow feature (Publish Workflow Template Version, 63090) ----
+  workflowPublishPage: async ({ page }, use) => use(new WorkflowPublishPage(page)),
+
+  // ---- Deliverable work items / workflow materialization (63071) ----
+  workItemsPage: async ({ page }, use) => use(new WorkItemsPage(page)),
 
   // ---- conversation feature (Write Conversation Message - COMM) ----
   conversationMessagePage: async ({ page }, use) => use(new ConversationMessagePage(page)),

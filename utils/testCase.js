@@ -76,6 +76,16 @@ const LABELS = {
   actualStart: 'Actual Start Date', actualCompletion: 'Actual Completion Date',
   serviceItem: 'Deliverable Type', serviceName: 'Deliverable Name', serviceStatus: 'Deliverable Status', serviceStage: 'Deliverable Stage',
   project: 'Project', orderedDate: 'Date Ordered', action: 'Action',
+  personName: 'Person', personEmail: 'Person Email', signInEmail: 'Sign-in Email', userRoles: 'Roles', changedRoles: 'Roles After Back',
+  emailSource: 'Sign-in Email Source',
+  serviceItemName: 'Deliverable Type Name', accountingId: 'Accounting ID', isTaxable: 'Taxable', allowedBillingTypes: 'Allowed Billing Types',
+  defaultBillingType: 'Default Billing Type', unitOfMeasure: 'Unit Of Measure', typicalHours: 'Typical Estimated Hours',
+  templateName: 'Template Name', creationMethod: 'Creation Method', sourceTemplate: 'Source Template', sourceVersion: 'Source Version',
+  versionStatus: 'Version Status', versionNumber: 'Version Number', stepCount: 'Workflow Steps',
+  defaultStage: 'Default Service Stage', steps: 'Steps', stepName: 'Step Name', staffRole: 'Staff Role', percentComplete: '% Complete',
+  startGate: 'Start Gate', phaseGate: 'Project Phase Gate', versions: 'Versions', setup: 'Setup',
+  workflow: 'Workflow', workItem: 'Work Item', workItems: 'Work Items',
+  compatibleTemplate: 'Compatible Workflow Template', compatibleTemplates: 'Compatible Workflow Templates', defaultTemplate: 'Default Workflow Template', status: 'Status',
   question: 'Verification Question', reauth: 'Re-authentication', useParentBilling: 'Use Owner Billing Address', ownerAddress: 'Owner Billing Address',
 };
 
@@ -126,7 +136,7 @@ async function recordUpdated(testInfo, module, tc, before, after, record) {
     type: 'UpdatedRecord',
     description: JSON.stringify({
       module, testCaseNo: tc.id, testType: tc.type || 'Positive', updatedAt: new Date().toISOString(),
-      name: after.targetName || after.projectName || after.accountName || after.tradeName || after.legalName || [after.firstName, after.middleName, after.lastName].filter(Boolean).join(' '),
+      name: after.serviceItemName || after.serviceName || after.templateName || after.targetName || after.projectName || after.accountName || after.tradeName || after.legalName || [after.firstName, after.middleName, after.lastName].filter(Boolean).join(' '),
       changes, recordId: record.id, url: record.url,
     }),
   });
