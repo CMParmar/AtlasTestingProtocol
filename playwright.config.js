@@ -93,6 +93,32 @@ export default defineConfig({
       ? [['./reporters/excel-reporter.js', { outputDir: 'reports/excel', fileName: 'Atlas_TestReport.xlsx' }]]
       : []),
     ...moduleReporters,
+    // Create User (Grant Access 62284): one dated workbook per day, every run of the day appended (reports/excel/create-user)
+    ['./reporters/createuser-reporter.js', { module: 'Create User', outputDir: `${modulesDir}/create-user`, filePrefix: 'Atlas_CreateUser' }],
+    // Create Service Item (62419, "Deliverable Type"): dated workbook with bandwidth usage, every run of the day appended (reports/excel/create-service-item)
+    ['./reporters/serviceitem-reporter.js', { module: 'Create Service Item', outputDir: `${modulesDir}/create-service-item`, filePrefix: 'Atlas_CreateServiceItem' }],
+    // View & Update Service Item (62420): same reporter, own dated workbook (+ "Updates" sheet: old -> new values) in reports/excel/view-update-service-item
+    ['./reporters/serviceitem-reporter.js', { module: 'View & Update Service Item', outputDir: `${modulesDir}/view-update-service-item`, filePrefix: 'Atlas_ViewUpdateServiceItem',
+      shortTitle: 'View & Update Service Item (62420)', useCase: '62420 View & Update Service Item (sandbox: Deliverable Type record page /ServiceItem/Edit/{id})' }],
+    // Create Workflow Template (63069): same reporter (bandwidth summary), own dated workbook in reports/excel/create-workflow-template
+    ['./reporters/serviceitem-reporter.js', { module: 'Create Workflow Template', outputDir: `${modulesDir}/create-workflow-template`, filePrefix: 'Atlas_CreateWorkflowTemplate',
+      shortTitle: 'Create Workflow Template (63069)', useCase: '63069 Create Workflow Template (sandbox: Settings -> Workflow Templates -> Create Template, /Setting/WorkflowTemplateList)',
+      records: { label: 'Workflow Templates', columns: [['Template Name', 'Template Name', 44], ['Creation Method', 'Creation Method', 20], ['Source Template', 'Source Template', 28],
+        ['Source Version', 'Source Version', 22], ['Description', 'Description', 44], ['Version Status', 'Version Status', 12], ['Version Number', 'Version Number', 10], ['Workflow Steps', 'Workflow Steps', 10]] } }],
+    // Materialize Workflow for Service (63071): same reporter, own dated workbook (records: Deliverable Type, templates, Deliverables; Updates sheet)
+    ['./reporters/serviceitem-reporter.js', { module: 'Materialize Workflow', outputDir: `${modulesDir}/materialize-workflow`, filePrefix: 'Atlas_MaterializeWorkflow',
+      shortTitle: 'Materialize Workflow for Service (63071)', useCase: '63071 Materialize Workflow for Service (sandbox: Add Deliverable with a workflow template; Deliverable Actions -> Change Workflow; Work Items tab)',
+      records: { label: 'Records', columns: [['Name', 'Name', 50], ['Record Type', 'Record Type', 18], ['Details', 'Details', 90]] } }],
+    // Publish Workflow Template Version (63090): same reporter, own dated workbook (+ "Updates" sheet = version states before / after)
+    ['./reporters/serviceitem-reporter.js', { module: 'Publish Workflow Template', outputDir: `${modulesDir}/publish-workflow-template`, filePrefix: 'Atlas_PublishWorkflowTemplate',
+      shortTitle: 'Publish Workflow Template Version (63090)', useCase: '63090 Publish Workflow Template Version (sandbox: /WorkflowTemplate/Edit/{id} -> Versions tab: Publish / Unpublish)',
+      records: { label: 'Workflow Templates', columns: [['Template Name', 'Template Name', 44], ['Default Service Stage', 'Default Service Stage', 16], ['Setup', 'Setup', 60],
+        ['Version Status', 'Version Status', 34], ['Version Number', 'Version Number', 10], ['Workflow Steps', 'Workflow Steps', 10], ['Description', 'Description', 44]] } }],
+    // View & Edit Workflow Template (63063): same reporter, own dated workbook (+ "Updates" sheet) in reports/excel/view-edit-workflow-template
+    ['./reporters/serviceitem-reporter.js', { module: 'View & Edit Workflow Template', outputDir: `${modulesDir}/view-edit-workflow-template`, filePrefix: 'Atlas_ViewEditWorkflowTemplate',
+      shortTitle: 'View & Edit Workflow Template (63063)', useCase: '63063 View & Edit Workflow Template (sandbox: /WorkflowTemplate/Edit/{id})',
+      records: { label: 'Workflow Templates', columns: [['Template Name', 'Template Name', 44], ['Creation Method', 'Creation Method', 20], ['Default Service Stage', 'Default Service Stage', 16],
+        ['Description', 'Description', 44], ['Version Status', 'Version Status', 12], ['Version Number', 'Version Number', 10], ['Workflow Steps', 'Workflow Steps', 10]] } }],
   ],
   use: {
     baseURL: process.env.BASE_URL || 'https://atlassandbox.xeosoftware.com',
@@ -104,7 +130,8 @@ export default defineConfig({
   },
   projects: [
     // Logs in once and saves the session for the signed-in specs (createTask)
-    { name: 'setup', testMatch: /auth\.setup\.js/ },
+    // No retries: a retried failed sign-in only adds failed attempts and locks the shared sandbox user.
+    { name: 'setup', testMatch: /auth\.setup\.js/, retries: 0 },
 
     // Signed-in specs: reuse the saved session
     {

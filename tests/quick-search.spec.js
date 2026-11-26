@@ -8,12 +8,13 @@ const { tcDetails, tcTitle, applyAllureLabels, knownDefectFor, recordTestValues,
  * A Quick Search is a navigation to /Search/QuickSearch?entityId&searchText&searchMode=quick, so searches are counted
  * as those page loads; an integer first calls GET /Search/PkExactMatch. History is read with
  * GET /Search/GetQuickSearchHistory (the app's own endpoint for {ModuleCode}.{Entity}.QuickSearchHistory).
- *
+ * yes now its is working finally
  * Not automated: CORE.SearchExecutionLog (no UI / API), the authorisation check of MF-2.5 for a record the user may not
  * open (needs a restricted record), a key of another entity (no id that exists for one entity only is guaranteed).
  */
 
-const QUIET_MS = 4_000; // how long "no search was run" is watched for
+const QUIET_MS = 4_000; 
+// how long "no search was run" is watched for
 const QUICK_URL = /\/Search\/QuickSearch\?/i;
 
 const shot = async (page, testInfo, name) => testInfo.attach(name, { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
