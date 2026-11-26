@@ -257,7 +257,7 @@ test.describe('Service Item - Create Deliverable Type (62419)', () => {
     await expectSaved(serviceItemPage, revised);
   });
 
-  // ================================================================== MF-5 validation
+  // ==================================================================== MF-5 validation
   test(tcTitle(c.emptyForm), tcDetails(c.emptyForm, MODULE), async ({ serviceItemPage }, testInfo) => {
     const tc = c.emptyForm;
     await openForm(serviceItemPage, testInfo, tc);
